@@ -75,7 +75,7 @@ A API também permite:
 
 ---
 
-## 🌟 Extras / Opcionais
+## 🌟 Extras 
 
 * ⭐ Sistema de **filmes favoritos** (além da watchlist)
 * 📄 **Exportação de avaliações** em PDF ou JSON
