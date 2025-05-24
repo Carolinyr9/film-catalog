@@ -3,6 +3,7 @@ package br.ifsp.film_catalog.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import br.ifsp.film_catalog.model.common.BaseEntity;
@@ -12,12 +13,8 @@ import br.ifsp.film_catalog.model.enums.RoleName;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "ROLES")
+@Table(name = "roles")
 public class Role extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @Setter
     @Enumerated(EnumType.STRING)
@@ -25,7 +22,7 @@ public class Role extends BaseEntity {
     private RoleName roleName;
 
     @ManyToMany(mappedBy = "roles", fetch = FetchType.EAGER)
-    private Set<User> users;
+    private Set<User> users = new HashSet<>();
 
     public Role(RoleName roleName) {
         this.roleName = roleName;

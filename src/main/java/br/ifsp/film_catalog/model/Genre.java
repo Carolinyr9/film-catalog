@@ -12,12 +12,8 @@ import br.ifsp.film_catalog.model.common.BaseEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "Genres")
+@Table(name = "genres")
 public class Genre extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @Setter
     @Column(nullable = false, unique = true, length = 20)
     private String name;

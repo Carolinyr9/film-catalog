@@ -12,12 +12,8 @@ import br.ifsp.film_catalog.model.common.BaseEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "Users")
+@Table(name = "users")
 public class User extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @Setter
     private String name;

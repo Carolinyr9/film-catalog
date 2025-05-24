@@ -13,7 +13,7 @@ import br.ifsp.film_catalog.model.common.BaseEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "Watchlists")
+@Table(name = "watchlists")
 public class Watchlist extends BaseEntity {
     @Setter
     private String name = "Watchlist";

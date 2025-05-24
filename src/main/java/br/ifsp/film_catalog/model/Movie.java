@@ -12,12 +12,8 @@ import br.ifsp.film_catalog.model.common.BaseEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "Movies")
+@Table(name = "movies")
 public class Movie extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @Setter
     @Column(nullable = false, unique = true)
