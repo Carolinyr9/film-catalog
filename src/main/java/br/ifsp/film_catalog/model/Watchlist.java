@@ -46,5 +46,10 @@ public class Watchlist extends BaseEntity {
         this.movies.remove(movie);
         movie.getWatchlists().remove(this); // Keep both sides in sync
     }
+
+    public Watchlist(String name, User user) {
+        this.name = name;
+        this.user = user;
+    }
     
 }

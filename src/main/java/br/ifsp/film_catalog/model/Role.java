@@ -26,6 +26,10 @@ public class Role extends BaseEntity {
 
     @ManyToMany(mappedBy = "roles", fetch = FetchType.EAGER)
     private Set<User> users;
+
+    public Role(RoleName roleName) {
+        this.roleName = roleName;
+    }
 }
 
 
