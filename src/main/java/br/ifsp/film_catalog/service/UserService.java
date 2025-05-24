@@ -41,6 +41,22 @@ public class UserService {
         user.setRoles(roles);
         return userRepository.save(user);
     }
+
+    /*
+        public void grantEditorRoleToUser(Long userId) {
+            // 1. Fetch the entities from the database
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            Role editorRole = roleRepository.findByRoleName(RoleName.ROLE_EDITOR)
+                    .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
+
+            // 2. Use the safe helper method to create the link
+            user.addRole(editorRole);
+
+            // 3. Save the user (the owning side). JPA will handle the changes to the join table.
+            userRepository.save(user);
+        }
+     */
 }
 
 

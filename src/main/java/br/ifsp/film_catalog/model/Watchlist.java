@@ -1,93 +1,50 @@
 package br.ifsp.film_catalog.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
+import lombok.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.HashSet;
+import java.util.Set;
 
+import br.ifsp.film_catalog.model.common.BaseEntity;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-public class Watchlist {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Table(name = "Watchlists")
+public class Watchlist extends BaseEntity {
+    @Setter
+    private String name = "Watchlist";
 
-    @NotBlank
-    private String nome = "Watchlist";
+    @Setter
+    private String description;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "user_id", // This is the foreign key column in the 'watchlists' table.
+            nullable = false, // This makes the relationship MANDATORY. A watchlist cannot exist without a user.
+            updatable = false // The owner of a watchlist should not change after creation.
+    )
     private User user;
 
-    @OneToMany(mappedBy = "watchlist", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<WatchlistMovie> filmes = new ArrayList<>();
-
-    public Watchlist() {
-    }
-
-    public Watchlist(Long id, List<WatchlistMovie> filmes, String nome, User user) {
-        this.id = id;
-        this.filmes = filmes;
-        this.nome = nome;
-        this.user = user;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public List<WatchlistMovie> getFilmes() {
-        return filmes;
-    }
-
-    public void setFilmes(List<WatchlistMovie> filmes) {
-        this.filmes = filmes;
-    }
+    @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @JoinTable(
+            name = "watchlist_movies", // Name of the join table
+            joinColumns = @JoinColumn(name = "watchlist_id"), // Column for this entity's ID
+            inverseJoinColumns = @JoinColumn(name = "movie_id") // Column for the other entity's ID
+    )
+    private Set<Movie> movies = new HashSet<>();
 
     public void addMovie(Movie movie) {
-        WatchlistMovie wm = new WatchlistMovie(this, movie, false);
-        this.filmes.add(wm);
+        this.movies.add(movie);
+        movie.getWatchlists().add(this); // Keep both sides in sync
     }
 
     public void removeMovie(Movie movie) {
-        this.filmes.removeIf(wm -> wm.getMovie().equals(movie));
+        this.movies.remove(movie);
+        movie.getWatchlists().remove(this); // Keep both sides in sync
     }
-
-    public void removeAllMovies() {
-        this.filmes.clear();
-    }
-
-    public boolean containsMovie(Optional<Movie> movie) {
-        return this.filmes.stream().anyMatch(wm -> wm.getMovie().equals(movie));
-    }
-
-    public boolean movieIsWatched(Long id) {
-        return this.filmes.stream()
-                .anyMatch(wm -> wm.getMovie().getId().equals(id) && wm.isAssistido());
-    }
-
-    public void markMovieAsWatched(Movie movie) {
-        this.filmes.stream().filter(wm -> wm.getMovie().equals(movie)).forEach(wm -> wm.setAssistido(true));
-    }
+    
 }

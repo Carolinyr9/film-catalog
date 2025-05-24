@@ -1,27 +1,32 @@
 package br.ifsp.film_catalog.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
+import lombok.*;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
+import br.ifsp.film_catalog.model.common.BaseEntity;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "USERS")
-public class User {
+@Table(name = "Users")
+public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    private String nome;
+    @Setter
+    private String name;
 
-    @NotBlank
+    @Setter
     @Column(unique = true)
     private String email;
 
+    @Setter
     @Column(name = "password")
     private String password;
 
@@ -36,62 +41,31 @@ public class User {
     )
     private Set<Role> roles = new HashSet<>();
 
-    public User() {
+    public void addRole(Role role) {
+        this.roles.add(role);
+        role.getUsers().add(this);
     }
 
-    public User(Long id, String nome, String email, String password, String username) {
-        this.id = id;
-        this.nome = nome;
-        this.email = email;
-        this.password = password;
-        this.username = username;
+    public void removeRole(Role role) {
+        this.roles.remove(role);
+        role.getUsers().remove(this);
     }
 
-    public Long getId() {
-        return id;
+    @OneToMany(
+        mappedBy = "user",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private Set<Watchlist> watchlists = new HashSet<>();
+
+    public void addWatchlist(Watchlist watchlist) {
+        this.watchlists.add(watchlist);
+        watchlist.setUser(this); // Set the back-reference
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void removeWatchlist(Watchlist watchlist) {
+        this.watchlists.remove(watchlist);
+        watchlist.setUser(null); // Remove the back-reference
     }
 
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public Set<Role> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<Role> roles) {
-        this.roles = roles;
-    }
 }
