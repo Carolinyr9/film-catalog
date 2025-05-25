@@ -11,6 +11,8 @@ import br.ifsp.film_catalog.model.key.UserMovieId;
 @Setter
 @NoArgsConstructor
 @Entity
+@EqualsAndHashCode(of = "id")
+@ToString(exclude = {"user", "movie", "review"})
 @Table(name = "user_watcheds")
 public class UserWatched {
     @EmbeddedId
@@ -27,10 +29,33 @@ public class UserWatched {
     @Column(name = "watched_at", nullable = false)
     private LocalDateTime watchedAt;
 
+    @OneToOne(
+            mappedBy = "userWatched",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
+    private Review review;
+
     public UserWatched(User user, Movie movie, LocalDateTime watchedAt) {
         this.user = user;
         this.movie = movie;
         this.id = new UserMovieId(user.getId(), movie.getId()); // Create the composite ID
         this.watchedAt = watchedAt;
+    }
+
+    public void addReview(String content, int directionScore, int screenplayScore, int cinematographyScore, int generalScore) {
+        if (this.review == null) { // A UserWatched can only have one Review
+            Review newReview = new Review(this, content);
+            newReview.setDirectionScore(directionScore);
+            newReview.setScreenplayScore(screenplayScore);
+            newReview.setCinematographyScore(cinematographyScore);
+            newReview.setGeneralScore(generalScore);
+            this.review = newReview;
+        }
+    }
+
+    public void removeReview() {
+        this.review = null;
     }
 }

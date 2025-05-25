@@ -125,18 +125,26 @@ public class User extends BaseEntity {
     public void addFlaggedContent(Review review, String flagReason) {
         ContentFlag flag = new ContentFlag(this, review, flagReason);
         this.flaggedContent.add(flag);
-        review.getFlags().add(flag);
+        if (review.getFlags() != null) { // Defensive check
+            review.getFlags().add(flag);
+        }
     }
 
     public void removeFlaggedContent(Review review) {
-        this.flaggedContent.removeIf(flag ->
-                flag.getUser().equals(this) &&
-                flag.getReview().equals(review)
-        );
-        review.getFlags().removeIf(flag ->
-                flag.getUser().equals(this) &&
-                flag.getReview().equals(review)
-        );
+        // Iterate to find the specific flag by this user for this review
+        ContentFlag toRemove = null;
+        for (ContentFlag flag : this.flaggedContent) {
+            if (flag.getReview().equals(review) && flag.getUser().equals(this)) {
+                toRemove = flag;
+                break;
+            }
+        }
+        if (toRemove != null) {
+            this.flaggedContent.remove(toRemove);
+            if (review.getFlags() != null) { // Defensive check
+                review.getFlags().remove(toRemove);
+            }
+        }
     }
 
 }

@@ -11,6 +11,8 @@ import br.ifsp.film_catalog.model.key.UserMovieId;
 @Setter
 @NoArgsConstructor
 @Entity
+@EqualsAndHashCode(of = "id")
+@ToString(exclude = {"user", "movie"})
 @Table(name = "user_favorites")
 public class UserFavorite {
     @EmbeddedId
