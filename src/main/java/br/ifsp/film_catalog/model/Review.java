@@ -1,139 +1,67 @@
 package br.ifsp.film_catalog.model;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import java.util.HashSet;
+import java.util.Set;
 
+import br.ifsp.film_catalog.model.key.UserMovieId;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
+@Table(name = "reviews")
 public class Review {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id // The Primary Key for Review will be the UserMovieId from UserWatched
+    private UserMovieId id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    /**
+     * This defines the One-to-One relationship.
+     * @MapsId tells JPA to use the primary key of the associated UserWatched entity
+     * as the primary key for this Review entity.
+     * This makes a Review's existence entirely dependent on a UserWatched record.
+     */
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId
+    @JoinColumns({
+        @JoinColumn(name="user_id", referencedColumnName="user_id"),
+        @JoinColumn(name="movie_id", referencedColumnName="movie_id")
+    })
+    private UserWatched userWatched;
 
-    @ManyToOne
-    @JoinColumn(name = "filme_id", nullable = false)
-    private Movie movie;
+    @Column(nullable = false)
+    private boolean hidden = false;
 
-    @NotNull
-    private Double nota;
+    // Renamed from 'userComments' for clarity, represents the text of the review.
+    @Column(columnDefinition = "TEXT")
+    private String content;
 
-    private Double notaDirecao;
+    private int directionScore;
+    private int screenplayScore;
+    private int cinematographyScore;
+    private int generalScore;
 
-    private Double notaFotografia;
+    @Column(name = "likes_count", nullable = false)
+    private int likesCount = 0;
 
-    @NotBlank
-    private String comentario;
+    @OneToMany(
+        mappedBy = "review",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private Set<ContentFlag> flags = new HashSet<>();
 
-    private int curtidas;
-
-    private int denuncias;
-
-    private boolean oculta = false;
-
-    private final int MIN_DENUNCIAS = 10;
-
-    public Review() {
+    public Review(UserWatched userWatched, String content) {
+        this.userWatched = userWatched;
+        this.id = userWatched.getId(); // Set the ID from the parent UserWatched
+        this.content = content;
     }
 
-    public Review(User user, boolean oculto, Double notaFotografia, Double nota, int denuncias, int curtidas, String comentario, Long id, Movie movie, Double notaDirecao) {
-        this.user = user;
-        this.oculta = oculto;
-        this.notaFotografia = notaFotografia;
-        this.nota = nota;
-        this.denuncias = denuncias;
-        this.curtidas = curtidas;
-        this.comentario = comentario;
-        this.id = id;
-        this.movie = movie;
-        this.notaDirecao = notaDirecao;
-    }
-
-    public String getComentario() {
-        return comentario;
-    }
-
-    public void setComentario(String comentario) {
-        this.comentario = comentario;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public boolean isOculta() {
-        return oculta;
-    }
-
-    public void setOculta(boolean oculta) {
-        this.oculta = oculta;
-    }
-
-    public Double getNotaDirecao() {
-        return notaDirecao;
-    }
-
-    public void setNotaDirecao(Double notaDirecao) {
-        this.notaDirecao = notaDirecao;
-    }
-
-    public Double getNota() {
-        return nota;
-    }
-
-    public void setNota(Double nota) {
-        this.nota = nota;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public int getCurtidas() {
-        return curtidas;
-    }
-
-    public void setCurtidas(int curtidas) {
-        this.curtidas = curtidas;
-    }
-
-    public int getDenuncias() {
-        return denuncias;
-    }
-
-    public void setDenuncias(int denuncias) {
-        this.denuncias = denuncias;
-    }
-
-    public Movie getMovie() {
-        return movie;
-    }
-
-    public void setMovie(Movie movie) {
-        this.movie = movie;
-    }
-
-    public Double getNotaFotografia() {
-        return notaFotografia;
-    }
-
-    public void setNotaFotografia(Double notaFotografia) {
-        this.notaFotografia = notaFotografia;
-    }
-
-    public int getMIN_DENUNCIAS() {
-        return MIN_DENUNCIAS;
+    public Long getMovieId() {
+        return this.id.getMovieId();
     }
 }

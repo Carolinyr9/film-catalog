@@ -60,4 +60,18 @@ public class Movie extends BaseEntity {
     @ManyToMany(mappedBy = "movies")
     private Set<Watchlist> watchlists = new HashSet<>();
 
+    @OneToMany(
+        mappedBy = "movie",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private Set<UserFavorite> favoritedBy = new HashSet<>();
+
+    @OneToMany(
+        mappedBy = "movie",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private Set<UserWatched> watchedBy = new HashSet<>();
+
 }

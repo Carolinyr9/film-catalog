@@ -3,6 +3,7 @@ package br.ifsp.film_catalog.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -63,6 +64,79 @@ public class User extends BaseEntity {
     public void removeWatchlist(Watchlist watchlist) {
         this.watchlists.remove(watchlist);
         watchlist.setUser(null); // Remove the back-reference
+    }
+
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<UserFavorite> favoriteMovies = new HashSet<>();
+
+    public void addFavorite(Movie movie) {
+        UserFavorite favorite = new UserFavorite(this, movie);
+        this.favoriteMovies.add(favorite);
+        movie.getFavoritedBy().add(favorite); // Keep both sides in sync
+    }
+
+    public void removeFavorite(Movie movie) {
+        // Create an iterator to safely remove while iterating
+        this.favoriteMovies.removeIf(favorite ->
+                favorite.getUser().equals(this) &&
+                favorite.getMovie().equals(movie)
+        );
+        movie.getFavoritedBy().removeIf(favorite ->
+                favorite.getUser().equals(this) &&
+                favorite.getMovie().equals(movie)
+        );
+    }
+
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<UserWatched> watchedMovies = new HashSet<>();
+
+    public void addWatched(Movie movie, LocalDateTime watchedAt) {
+        UserWatched watched = new UserWatched(this, movie, watchedAt);
+        this.watchedMovies.add(watched);
+        movie.getWatchedBy().add(watched);
+    }
+
+    public void removeWatched(Movie movie) {
+        this.watchedMovies.removeIf(watched ->
+                watched.getUser().equals(this) &&
+                watched.getMovie().equals(movie)
+        );
+        movie.getFavoritedBy().removeIf(watched ->
+                watched.getUser().equals(this) &&
+                watched.getMovie().equals(movie)
+        );
+    }
+
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<ContentFlag> flaggedContent = new HashSet<>();
+
+    public void addFlaggedContent(Review review, String flagReason) {
+        ContentFlag flag = new ContentFlag(this, review, flagReason);
+        this.flaggedContent.add(flag);
+        review.getFlags().add(flag);
+    }
+
+    public void removeFlaggedContent(Review review) {
+        this.flaggedContent.removeIf(flag ->
+                flag.getUser().equals(this) &&
+                flag.getReview().equals(review)
+        );
+        review.getFlags().removeIf(flag ->
+                flag.getUser().equals(this) &&
+                flag.getReview().equals(review)
+        );
     }
 
 }
