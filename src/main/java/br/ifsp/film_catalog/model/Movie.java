@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import br.ifsp.film_catalog.model.common.BaseEntity;
+import br.ifsp.film_catalog.model.enums.ContentRating;
 
 @Getter
 @NoArgsConstructor
@@ -29,7 +30,7 @@ public class Movie extends BaseEntity {
     private int duration;
 
     @Setter
-    private String contentRating; // Classificação indicativa
+    private ContentRating contentRating; // Classificação indicativa
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinTable(

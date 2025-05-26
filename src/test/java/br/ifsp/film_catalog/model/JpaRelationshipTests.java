@@ -1,5 +1,6 @@
 package br.ifsp.film_catalog.model;
 
+import br.ifsp.film_catalog.model.enums.ContentRating;
 import br.ifsp.film_catalog.model.enums.RoleName;
 import br.ifsp.film_catalog.model.key.UserMovieId;
 import br.ifsp.film_catalog.model.key.UserReviewId;
@@ -62,7 +63,7 @@ public class JpaRelationshipTests {
         movie.setTitle(title);
         movie.setReleaseYear(2000 + (int)(Math.random() * 20)); // Add some variation
         movie.setDuration(120 + (int)(Math.random() * 30));
-        movie.setContentRating("PG-13");
+        movie.setContentRating(ContentRating.AL);
         return movieRepository.save(movie);
     }
 
