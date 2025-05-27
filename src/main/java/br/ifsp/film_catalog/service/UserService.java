@@ -1,23 +1,28 @@
 package br.ifsp.film_catalog.service;
 
+import br.ifsp.film_catalog.dto.MovieResponseDTO;
 import br.ifsp.film_catalog.dto.UserPatchDTO;
 import br.ifsp.film_catalog.dto.UserRequestDTO;
 import br.ifsp.film_catalog.dto.UserResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
 import br.ifsp.film_catalog.exception.ResourceNotFoundException;
 import br.ifsp.film_catalog.mapper.PagedResponseMapper;
+import br.ifsp.film_catalog.model.Movie;
 import br.ifsp.film_catalog.model.Role;
 import br.ifsp.film_catalog.model.User;
+import br.ifsp.film_catalog.repository.MovieRepository;
 import br.ifsp.film_catalog.repository.RoleRepository;
 import br.ifsp.film_catalog.repository.UserRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -26,17 +31,20 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final MovieRepository movieRepository;
     private final PasswordEncoder passwordEncoder;
     private final ModelMapper modelMapper;
     private final PagedResponseMapper pagedResponseMapper;
 
     public UserService(UserRepository userRepository,
                          RoleRepository roleRepository,
+                         MovieRepository movieRepository,
                          PasswordEncoder passwordEncoder,
                          ModelMapper modelMapper,
                          PagedResponseMapper pagedResponseMapper) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.movieRepository = movieRepository;
         this.passwordEncoder = passwordEncoder;
         this.modelMapper = modelMapper;
         this.pagedResponseMapper = pagedResponseMapper;
@@ -197,5 +205,45 @@ public class UserService {
         }
         // Add any other business logic before deletion if necessary (e.g., check for dependencies)
         userRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void addFavoriteMovie(Long userId, Long movieId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        Movie movie = movieRepository.findById(movieId)
+                .orElseThrow(() -> new ResourceNotFoundException("Movie not found with id: " + movieId));
+
+        user.addFavorite(movie);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void removeFavoriteMovie(Long userId, Long movieId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        Movie movie = movieRepository.findById(movieId)
+                .orElseThrow(() -> new ResourceNotFoundException("Movie not found with id: " + movieId));
+
+        user.removeFavorite(movie);
+        userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<MovieResponseDTO> getFavoriteMovies(Long userId, Pageable pageable) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("User not found with id: " + userId);
+        }
+        
+        List<Movie> favoriteMovies = userRepository.findById(userId).get().getFavoriteMovies().stream()
+                .map(favorite -> favorite.getMovie())
+                .collect(Collectors.toList());
+        
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), favoriteMovies.size());
+        
+        Page<Movie> page = new PageImpl<>(favoriteMovies.subList(start, end), pageable, favoriteMovies.size());
+
+        return pagedResponseMapper.toPagedResponse(page, MovieResponseDTO.class);
     }
 }

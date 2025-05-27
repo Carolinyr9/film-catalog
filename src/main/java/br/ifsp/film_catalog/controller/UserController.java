@@ -1,5 +1,6 @@
 package br.ifsp.film_catalog.controller;
 
+import br.ifsp.film_catalog.dto.MovieResponseDTO;
 import br.ifsp.film_catalog.dto.UserPatchDTO;
 import br.ifsp.film_catalog.dto.UserRequestDTO;
 import br.ifsp.film_catalog.dto.UserResponseDTO;
@@ -142,5 +143,46 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Adicionar um filme aos favoritos do usuário", description = "Adiciona um filme à lista de favoritos de um usuário.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Filme favoritado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Usuário ou filme não encontrado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
+    })
+    @PostMapping("/{userId}/favorites/{movieId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<Void> addFavoriteMovie(@PathVariable Long userId, @PathVariable Long movieId) {
+        userService.addFavoriteMovie(userId, movieId);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Remover um filme dos favoritos do usuário", description = "Remove um filme da lista de favoritos de um usuário.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Filme removido dos favoritos com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Usuário ou filme não encontrado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
+    })
+    @DeleteMapping("/{userId}/favorites/{movieId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<Void> removeFavoriteMovie(@PathVariable Long userId, @PathVariable Long movieId) {
+        userService.removeFavoriteMovie(userId, movieId);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Listar filmes favoritos do usuário", description = "Retorna uma lista paginada dos filmes favoritos de um usuário.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de filmes favoritos recuperada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
+    })
+    @GetMapping("/{userId}/favorites")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<PagedResponse<MovieResponseDTO>> getFavoriteMovies(
+            @PathVariable Long userId,
+            @PageableDefault(size = 10, sort = "title") Pageable pageable) {
+        PagedResponse<MovieResponseDTO> favoriteMovies = userService.getFavoriteMovies(userId, pageable);
+        return ResponseEntity.ok(favoriteMovies);
     }
 }
