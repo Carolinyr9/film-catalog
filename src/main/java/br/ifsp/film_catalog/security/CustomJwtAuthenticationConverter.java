@@ -3,8 +3,10 @@ package br.ifsp.film_catalog.security;
 
 import br.ifsp.film_catalog.model.User;
 import br.ifsp.film_catalog.repository.UserRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -19,7 +21,7 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Abstract
     private UserRepository userRepository;
 
     @Override
-    public AbstractAuthenticationToken convert(Jwt jwt) {
+    public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
         UserAuthenticated userAuthenticated = extractUser(jwt);
         List<GrantedAuthority> authorities = List.copyOf(userAuthenticated.getAuthorities());
         return new UsernamePasswordAuthenticationToken(userAuthenticated, null, authorities);
