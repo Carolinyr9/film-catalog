@@ -58,7 +58,7 @@ public class MovieController {
     })
     @GetMapping("/genero/{movieGenero}")
     public ResponseEntity<Page<MovieDTO>> getMovieByGenero(@PathVariable String movieGenero, Pageable pageable) {
-        var movies = movieRepository.findByGeneroContainingIgnoreCase(movieGenero, pageable)
+        var movies = movieRepository.findByGenerosContainingIgnoreCase(movieGenero, pageable)
                 .map(movie -> movieMapper.map(movie, MovieDTO.class));
         return ResponseEntity.ok(movies);
     }
