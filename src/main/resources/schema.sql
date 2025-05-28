@@ -38,6 +38,7 @@ CREATE TABLE users (
     name VARCHAR(255),
     email VARCHAR(255) UNIQUE,
     password VARCHAR(255),
+    roles ENUM('ROLE_USER', 'ROLE_ADMIN') NOT NULL,
     username VARCHAR(255) UNIQUE
 );
 

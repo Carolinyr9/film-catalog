@@ -17,6 +17,7 @@ import br.ifsp.film_catalog.model.common.BaseEntity;
 public class User extends BaseEntity {
 
     @Setter
+    @Column(name = "name")
     private String name;
 
     @Setter
