@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -17,6 +16,4 @@ public class ContentFlagResponseDTO {
     private String flagReason;
     private Instant createdAt;
     private Instant updatedAt;
-    private LocalDateTime createdAtLocal; // For easier display in UI
-    private LocalDateTime updatedAtLocal; // For easier display in UI
 }

@@ -1,6 +1,5 @@
 package br.ifsp.film_catalog.model;
 
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -10,8 +9,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 @Getter
 @NoArgsConstructor
@@ -32,14 +29,6 @@ public class Review extends BaseEntity {
     @Setter private int screenplayScore;
     @Setter private int cinematographyScore;
     @Setter private int generalScore;
-
-    @Setter
-    @CreationTimestamp
-    private Instant createdAt;
-
-    @Setter
-    @UpdateTimestamp
-    private Instant updatedAt;
 
     @Setter
     @Column(name = "likes_count", nullable = false)
