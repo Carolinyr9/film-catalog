@@ -1,82 +1,133 @@
-# 🎬 Catálogo de Filmes - API RESTful
+# 🎬 Film Catalog API
 
-## 📌 Enunciado do Projeto
+## 📌 Objetivo e público-alvo da API
 
-Desenvolva uma **API RESTful** para um sistema de **catálogo de filmes com avaliações feitas por usuários autenticados**.
+Esta API foi desenvolvida para fornecer uma plataforma de gerenciamento de filmes, com funcionalidades de autenticação, cadastro, avaliação e recomendação. O público-alvo inclui:
 
-Cada filme possui:
-
-* 🎞️ Título
-* 📝 Sinopse
-* 📅 Ano de lançamento
-* 🏷️ Gênero(s)
-* ⏱️ Duração
-* 🔞 Classificação indicativa
-
-Os usuários podem:
-
-* Adicionar filmes a uma **watchlist pessoal**
-* Marcar filmes como **assistidos**
-* Criar **avaliações com múltiplos critérios** (roteiro, direção, fotografia, etc.)
-
-**Apenas filmes marcados como assistidos podem ser avaliados.**
-
-A API também permite:
-
-* Descobrir filmes com **filtros e recomendações**
-* Curtir ou denunciar avaliações
-* Ocultar conteúdos após número excessivo de denúncias
-* Acesso por **níveis de permissão** (USER e ADMIN)
-* Proteção com **JWT Authentication**
+- Desenvolvedores backend e frontend que desejam integrar funcionalidades de catálogo e recomendação de filmes.
+- Equipes de QA que precisam testar funcionalidades REST com autenticação JWT.
+- Usuários administrativos responsáveis pelo controle de acesso e curadoria dos dados.
 
 ---
 
-## 🧩 Histórias de Usuário
+## ⚙️ Funcionalidades implementadas
 
-### 🔐 Autenticação e Autorização
+As funcionalidades foram desenvolvidas com base em histórias de usuário, incluindo:
 
-* Como visitante, quero **me cadastrar** com nome, e-mail e senha.
-* Como usuário autenticado, quero **fazer login e receber um token JWT**.
-* Como administrador, quero **definir o papel dos usuários (USER ou ADMIN)**.
-
-### 🎬 Filmes e Catálogo
-
-* Como administrador, quero **cadastrar, editar, excluir e listar filmes**.
-* Como usuário, quero **visualizar filmes com filtros** (por título, gênero ou ano).
-* Como usuário, quero **adicionar filmes à minha watchlist**.
-* Como usuário, quero **marcar filmes como assistidos**.
-* Como sistema, quero **impedir avaliações de filmes não assistidos**.
-
-### 📊 Avaliações
-
-* Como usuário, quero **avaliar um filme assistido com múltiplos critérios** e uma nota geral.
-* Como usuário, quero **editar ou excluir minhas avaliações**.
-* Como usuário, quero **curtir ou denunciar avaliações**.
-* Como sistema, quero **ocultar avaliações com excesso de denúncias**.
-* Como administrador, quero **visualizar e moderar avaliações**.
-
-### 📈 Recomendações e Destaques
-
-* Como usuário, quero **receber recomendações com base nas minhas avaliações e gêneros favoritos**.
-* Como administrador, quero **listar os filmes mais bem avaliados ou mais comentados**.
-* Como administrador, quero **gerar estatísticas por usuário** (avaliações, notas médias, curtidas).
+- ✅ **Cadastro de usuários e autenticação via JWT**
+- ✅ **Login com autenticação de senha segura**
+- ✅ **Cadastro, edição, listagem e exclusão de filmes**
+- ✅ **Avaliação de filmes por usuários**
+- ✅ **Listagem de destaques e rankings**
+- ✅ **Geração de recomendações personalizadas**
+- ✅ **Controle de acesso com base em papéis (ADMIN, USER)**
 
 ---
 
-## ✅ Requisitos de Testes
+## 🚀 Instruções de execução local
 
-* ✔️ **Testes unitários** de serviços (avaliações, recomendações, controle de acesso)
-* ✔️ **Testes funcionais** com `MockMvc` ou `TestRestTemplate`
-* ✔️ **Casos de teste cobrindo regras e restrições**:
+### ✅ Pré-requisitos
 
-  * Só avaliar se assistido
-  * Ocultação por denúncias
-  * Rankings por nota ou interação
+- Java 17+
+- Maven 3.8+
+- PostgreSQL (ou outro banco compatível configurado no `application.properties`)
+
+### 🔧 Build
+
+```bash
+./mvnw clean package
+````
+
+### ▶️ Run
+
+./mvnw spring-boot:run
+
+
+Ou execute o .jar:
+
+java -jar target/film-catalog-0.0.1-SNAPSHOT.jar
+
+
+## 🔐 Como obter o token JWT e testar os endpoints
+
+### 1. Obtenha um token
+
+Envie uma requisição POST para:
+
+POST /api/auth
+
+Corpo da requisição:
+
+{
+  "username": "admin",
+  "password": "AdminPassword123!"
+}
+
+
+Resposta:
+
+"eyJhbGciOiJIUzI1NiIsInR..."
+
+
+### 2. Use o token nos demais endpoints
+
+Adicione no header das requisições:
+
+Authorization: Bearer SEU_TOKEN_JWT
+
+Você pode testar com Postman, Insomnia ou Swagger.
+
+
+## 🗂️ Resumo do modelo de dados e regras de validação
+
+### 🧑‍💻 Usuário
+
+| Campo      | Descrição                      | Validação                          |
+|------------|--------------------------------|-------------------------------------|
+| `username` | Nome de usuário                | Obrigatório, único                 |
+| `email`    | Endereço de e-mail             | Obrigatório, formato válido, único |
+| `password` | Senha do usuário               | Obrigatório, armazenada com BCrypt |
+| `roles`    | Perfis de acesso do usuário    | Um ou mais (ex: `ADMIN`, `USER`)   |
 
 ---
 
-## 🌟 Extras 
+### 🎞️ Filme
 
-* ⭐ Sistema de **filmes favoritos** (além da watchlist)
-* 📄 **Exportação de avaliações** em PDF ou JSON
-* 🧮 **Média ponderada das avaliações por critério**
+| Campo         | Descrição               | Validação                          |
+|---------------|-------------------------|-------------------------------------|
+| `title`       | Título do filme         | Obrigatório, único                 |
+| `releaseYear` | Ano de lançamento       | Obrigatório, inteiro (ex: 2024)    |
+| `genre`       | Gênero do filme         | Enum ou string padronizada         |
+
+### Avaliações
+
+* Só podem ser feitas por usuários autenticados
+* Um usuário só pode avaliar um filme uma vez
+
+## 🔐 Autenticação e Autorização
+
+* **JWT**: Gerado após autenticação válida, com expiração e assinatura segura.
+* **Spring Security**: Gerencia login, logout, autenticação e controle de rotas.
+* **Papéis (roles)**:
+
+  * `ROLE_ADMIN`: acesso total ao sistema
+  * `ROLE_USER`: acesso restrito (sem edição de filmes, por exemplo)
+
+As rotas são protegidas por filtros e regras declaradas na configuração de segurança.
+
+## 🧪 Testes implementados
+
+### ✅ Testes Unitários
+
+* Serviços como `UserService`, `FilmService` e `JwtService`
+* Validação de lógica de negócio independente do contexto web
+
+### ✅ Testes Funcionais (integração)
+
+* Requisições REST simuladas com autenticação
+* Testes para endpoints protegidos e públicos
+* Verificação de comportamento esperado com Spring Boot Test
+
+Os testes estão localizados em `src/test/java`.
+
+📬 Em caso de dúvidas ou sugestões, fique à vontade para abrir uma *issue* ou enviar um *pull request*!
