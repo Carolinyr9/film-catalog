@@ -3,7 +3,10 @@ package br.ifsp.film_catalog.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import br.ifsp.film_catalog.model.key.UserReviewId;
 
@@ -18,9 +21,16 @@ public class ContentFlag {
 
     @EmbeddedId
     private UserReviewId id;
-    
-    @Column(name = "flagged_at", nullable = false)
-    private LocalDateTime flaggedAt;
+
+    @Setter
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Setter
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     @Column(name = "flag_reason", nullable = false)
     private String flagReason;
@@ -40,6 +50,5 @@ public class ContentFlag {
         this.review = review;
         this.id = new UserReviewId(user.getId(), review.getId());
         this.flagReason = flagReason;
-        this.flaggedAt = LocalDateTime.now();
     }
 }

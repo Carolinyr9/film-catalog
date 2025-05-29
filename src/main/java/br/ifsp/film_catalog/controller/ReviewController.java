@@ -1,10 +1,15 @@
 package br.ifsp.film_catalog.controller;
 
+import br.ifsp.film_catalog.dto.ContentFlagRequestDTO;
+import br.ifsp.film_catalog.dto.ContentFlagResponseDTO;
 import br.ifsp.film_catalog.dto.ReviewRequestDTO;
 import br.ifsp.film_catalog.dto.ReviewResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
+import br.ifsp.film_catalog.security.UserAuthenticated;
+import br.ifsp.film_catalog.service.ContentFlagService;
 import br.ifsp.film_catalog.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,6 +19,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,9 +30,11 @@ import org.springframework.web.bind.annotation.*;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final ContentFlagService contentFlagService;
 
-    public ReviewController(ReviewService reviewService) {
+    public ReviewController(ReviewService reviewService, ContentFlagService contentFlagService) {
         this.reviewService = reviewService;
+        this.contentFlagService = contentFlagService;
     }
 
     @Operation(summary = "Criar uma nova avaliação para um filme assistido por um usuário")
@@ -135,29 +143,21 @@ public class ReviewController {
         return ResponseEntity.ok(review);
     }
 
-    @Operation(summary = "Ocultar uma avaliação (Admin)")
+    @Operation(summary = "Sinalizar (flag) uma avaliação")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Status de ocultação da avaliação atualizado"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado (Requer perfil de ADMIN)"),
-            @ApiResponse(responseCode = "404", description = "Avaliação não encontrada")
+        @ApiResponse(responseCode = "201", description = "Avaliação sinalizada com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos (ex: razão em branco)"),
+        @ApiResponse(responseCode = "403", description = "Acesso negado"),
+        @ApiResponse(responseCode = "404", description = "Avaliação ou usuário reportando não encontrado"),
+        @ApiResponse(responseCode = "409", description = "Usuário já sinalizou esta avaliação ou tentando sinalizar a própria avaliação")
     })
-    @PatchMapping("/reviews/{reviewId}/hide")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ReviewResponseDTO> hideReview(@PathVariable Long reviewId) {
-        ReviewResponseDTO review = reviewService.toggleHideReview(reviewId, true);
-        return ResponseEntity.ok(review);
-    }
-
-    @Operation(summary = "Mostrar uma avaliação previamente oculta (Admin)")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Status de ocultação da avaliação atualizado"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado (Requer perfil de ADMIN)"),
-            @ApiResponse(responseCode = "404", description = "Avaliação não encontrada")
-    })
-    @PatchMapping("/reviews/{reviewId}/unhide")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ReviewResponseDTO> unhideReview(@PathVariable Long reviewId) {
-        ReviewResponseDTO review = reviewService.toggleHideReview(reviewId, false);
-        return ResponseEntity.ok(review);
+    @PostMapping("/reviews/{reviewId}/flag")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ContentFlagResponseDTO> flagReview(
+            @PathVariable Long reviewId,
+            @Valid @RequestBody ContentFlagRequestDTO contentFlagRequestDTO,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserAuthenticated reportedBy) {
+        ContentFlagResponseDTO flagged = contentFlagService.flagReview(reviewId, reportedBy.getUser().getId(), contentFlagRequestDTO);
+        return new ResponseEntity<>(flagged, HttpStatus.CREATED);
     }
 }
