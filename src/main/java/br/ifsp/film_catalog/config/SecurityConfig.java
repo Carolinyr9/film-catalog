@@ -7,7 +7,6 @@ import br.ifsp.film_catalog.security.CustomJwtAuthenticationConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -41,49 +40,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http,
             CustomJwtAuthenticationConverter customJwtAuthenticationConverter) throws Exception {
         http.csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() 
-                        .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll() 
-                        .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN") 
-                        
-                        .requestMatchers(HttpMethod.GET, "/api/users/{userId}/favorites/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/users/{userId}/favorites/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/users/{userId}/favorites/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/users/{userId}/watched/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/users/{userId}/watched/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/users/{userId}/watched/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/users/{userId}/watchlists/**").authenticated()      
-                        .requestMatchers(HttpMethod.POST, "/api/users/{userId}/watchlists/**").authenticated()     
-                        .requestMatchers(HttpMethod.PUT, "/api/users/{userId}/watchlists/**").authenticated()      
-                        .requestMatchers(HttpMethod.DELETE, "/api/users/{userId}/watchlists/**").authenticated() 
-                        
-                        .requestMatchers(HttpMethod.POST, "/api/users/{userId}/movies/{movieId}/reviews").authenticated() 
-                        .requestMatchers(HttpMethod.GET, "/api/movies/{movieId}/reviews").permitAll() 
-                        .requestMatchers(HttpMethod.GET, "/api/users/{userId}/reviews").authenticated() 
-                        .requestMatchers(HttpMethod.GET, "/api/reviews/{reviewId}").permitAll() 
-                        .requestMatchers(HttpMethod.PUT, "/api/reviews/{reviewId}").authenticated() 
-                        .requestMatchers(HttpMethod.DELETE, "/api/reviews/{reviewId}").authenticated() 
-                        .requestMatchers(HttpMethod.POST, "/api/reviews/{reviewId}/like").authenticated() 
-                        .requestMatchers(HttpMethod.POST, "/api/reviews/{reviewId}/flag").authenticated()
-
-                        .requestMatchers("/api/moderation/**").hasRole("ADMIN")
-
-                        .requestMatchers("/api/users/**").authenticated() 
-                        
-                        .requestMatchers("/api/movies/**").permitAll() 
-                        .requestMatchers(HttpMethod.POST, "/api/movies").hasRole("ADMIN") 
-                        .requestMatchers(HttpMethod.PUT, "/api/movies/**").hasRole("ADMIN") 
-                        .requestMatchers(HttpMethod.PATCH, "/api/movies/**").hasRole("ADMIN") 
-                        .requestMatchers(HttpMethod.DELETE, "/api/movies/**").hasRole("ADMIN") 
-                        
-                        .requestMatchers("/api/genres/**").permitAll() 
-                        .requestMatchers(HttpMethod.POST, "/api/genres").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/genres/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/genres/**").hasRole("ADMIN")
-                        
-                        .requestMatchers("/api/roles/**").hasRole("ADMIN")
-                        .anyRequest().authenticated() 
-                )
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/users/register").permitAll().anyRequest().authenticated())
                 .oauth2ResourceServer(
                         conf -> conf.jwt(jwt -> jwt.jwtAuthenticationConverter(customJwtAuthenticationConverter)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

@@ -15,12 +15,23 @@ import br.ifsp.film_catalog.repository.MovieRepository;
 import br.ifsp.film_catalog.repository.ReviewRepository;
 import br.ifsp.film_catalog.repository.UserRepository;
 import br.ifsp.film_catalog.repository.UserWatchedRepository;
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
+
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
+import java.io.OutputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class ReviewService {
@@ -144,4 +155,67 @@ public class ReviewService {
         Review updatedReview = reviewRepository.save(review);
         return modelMapper.map(updatedReview, ReviewResponseDTO.class);
     }
+
+    @Transactional(readOnly = true)
+    public void exportAsPdf(HttpServletResponse response) throws Exception {
+        List<Review> reviews = reviewRepository.findAll();
+
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=reviews.pdf");
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, baos);
+
+        document.open();
+        document.add(new Paragraph("Lista de Avaliações"));
+
+        for (Review review : reviews) {
+            document.add(new Paragraph("Review ID: " + review.getId()));
+            document.add(new Paragraph("Usuário: " + review.getUserWatched().getUser().getUsername()));
+            document.add(new Paragraph("Filme: " + review.getUserWatched().getMovie().getTitle()));
+            document.add(new Paragraph("Nota Geral: " + review.getGeneralScore()));
+            document.add(new Paragraph("Nota de Direção: " + review.getDirectionScore()));
+            document.add(new Paragraph("Nota de Roteiro: " + review.getScreenplayScore()));
+            document.add(new Paragraph("Nota de Cinematografia: " + review.getCinematographyScore()));
+            document.add(new Paragraph("Conteúdo: " + review.getContent()));
+            document.add(new Paragraph("------"));
+        }
+
+        document.close();
+        OutputStream os = response.getOutputStream();
+        baos.writeTo(os);
+        os.flush();
+    }
+
+    public String getUserStatistics(Pageable pageable, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        long totalReviews = reviewRepository.countByUserWatched_User_Id(userId);
+        long totalLikes = reviewRepository.sumLikesCountByUserWatched_User_Id(userId);
+        double averageGeneralScore = reviewRepository.calculateAverageGeneralScoreByUserWatched_User_Id(userId);
+
+        return String.format("O usuário %s fez %d reviews, recebeu %d likes e tem uma média geral nas avaliações de %.2f.", user.getUsername(), totalReviews, totalLikes, averageGeneralScore);
+    }
+
+    public List<Double> getAverageWeighted(Pageable pageable, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        double directionAvg = reviewRepository.calculateAverageDirectionScoreByUserWatched_User_Id(userId);
+        double screenplayAvg = reviewRepository.calculateAverageScreenplayScoreByUserWatched_User_Id(userId);
+        double cinematographyAvg = reviewRepository.calculateAverageCinematographyScoreByUserWatched_User_Id(userId);
+        double generalAvg = reviewRepository.calculateAverageGeneralScoreByUserWatched_User_Id(userId);
+
+        List<Double> averages = new ArrayList<>();
+        averages.add(directionAvg);
+        averages.add(screenplayAvg);
+        averages.add(cinematographyAvg);
+        averages.add(generalAvg);
+
+        return averages;
+    }
+
+
 }

@@ -4,24 +4,31 @@ import br.ifsp.film_catalog.dto.ContentFlagRequestDTO;
 import br.ifsp.film_catalog.dto.ContentFlagResponseDTO;
 import br.ifsp.film_catalog.dto.ReviewRequestDTO;
 import br.ifsp.film_catalog.dto.ReviewResponseDTO;
+import br.ifsp.film_catalog.dto.UserResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
+import br.ifsp.film_catalog.exception.ErrorResponse;
 import br.ifsp.film_catalog.security.UserAuthenticated;
 import br.ifsp.film_catalog.service.ContentFlagService;
 import br.ifsp.film_catalog.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @Tag(name = "Reviews", description = "API para gerenciamento de avaliações de filmes")
 @Validated
@@ -160,4 +167,47 @@ public class ReviewController {
         ContentFlagResponseDTO flagged = contentFlagService.flagReview(reviewId, reportedBy.getUser().getId(), contentFlagRequestDTO);
         return new ResponseEntity<>(flagged, HttpStatus.CREATED);
     }
+
+    @Operation(summary = "Exportar avaliações em PDF", description = "Exporta todas as avaliações no modelo pdf.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de avaiações exportada com sucesso",
+                         content = @Content(mediaType = "application/pdf")),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
+                         content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping(value = "/export/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public void exportAsPdf(HttpServletResponse response) throws Exception {
+        reviewService.exportAsPdf(response);
+    }
+
+    @Operation(summary = "Listar estatísticas de avaliações feitas por um usuário específico")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Estatísticas recuperadas com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+    })
+    @GetMapping("/reviews/{userId}/userStatistics")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> getUserStatistics(
+            @PageableDefault(size = 10, sort = "reviewsCount") Pageable pageable, Long userId) {
+        String userStatistics = reviewService.getUserStatistics(pageable, userId);
+        return ResponseEntity.ok(userStatistics);
+    }
+
+    @Operation(summary = "Listar média ponderada das avaliações por critérios de um usuário específico")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Estatísticas recuperadas com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+    })
+    @GetMapping("/reviews/{userId}/average-weighted")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List> getAverageWeighted(
+            @PageableDefault(size = 10, sort = "reviewsCount") Pageable pageable, Long userId) {
+        List reviewsStatistics = reviewService.getAverageWeighted(pageable, userId);
+        return ResponseEntity.ok(reviewsStatistics);
+    }
+
+    
 }
