@@ -13,12 +13,15 @@ import br.ifsp.film_catalog.model.Movie;
 import br.ifsp.film_catalog.model.Role;
 import br.ifsp.film_catalog.model.User;
 import br.ifsp.film_catalog.model.UserFavorite;
+import br.ifsp.film_catalog.model.UserWatched;
 import br.ifsp.film_catalog.model.enums.RoleName;
 import br.ifsp.film_catalog.model.key.UserMovieId;
 import br.ifsp.film_catalog.repository.MovieRepository;
 import br.ifsp.film_catalog.repository.RoleRepository;
 import br.ifsp.film_catalog.repository.UserFavoriteRepository;
 import br.ifsp.film_catalog.repository.UserRepository;
+import br.ifsp.film_catalog.repository.UserWatchedRepository;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -27,6 +30,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -39,6 +43,7 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final MovieRepository movieRepository;
     private final UserFavoriteRepository userFavoriteRepository;
+    private final UserWatchedRepository userWatchedRepository;
     private final PasswordEncoder passwordEncoder;
     private final ModelMapper modelMapper;
     private final PagedResponseMapper pagedResponseMapper;
@@ -47,6 +52,7 @@ public class UserService {
                          RoleRepository roleRepository,
                          MovieRepository movieRepository,
                          UserFavoriteRepository userFavoriteRepository,
+                         UserWatchedRepository userWatchedRepository,
                          PasswordEncoder passwordEncoder,
                          ModelMapper modelMapper,
                          PagedResponseMapper pagedResponseMapper) {
@@ -54,6 +60,7 @@ public class UserService {
         this.roleRepository = roleRepository;
         this.movieRepository = movieRepository;
         this.userFavoriteRepository = userFavoriteRepository;
+        this.userWatchedRepository = userWatchedRepository;
         this.passwordEncoder = passwordEncoder;
         this.modelMapper = modelMapper;
         this.pagedResponseMapper = pagedResponseMapper;
@@ -257,5 +264,50 @@ public class UserService {
         Page<Movie> page = new PageImpl<>(favoriteMovies.subList(start, end), pageable, favoriteMovies.size());
 
         return pagedResponseMapper.toPagedResponse(page, MovieResponseDTO.class);
+    }
+
+    @Transactional
+    public void addWatchedMovie(Long userId, Long movieId) {
+        UserMovieId watchedId = new UserMovieId(userId, movieId);
+        if (userWatchedRepository.existsById(watchedId)) {
+            throw new IllegalArgumentException("Movie with id " + movieId + " is already marked as watched for user with id " + userId);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        Movie movie = movieRepository.findById(movieId)
+                .orElseThrow(() -> new ResourceNotFoundException("Movie not found with id: " + movieId));
+        
+        UserWatched watched = new UserWatched(user, movie, LocalDateTime.now());
+        userWatchedRepository.save(watched);
+    }
+
+    @Transactional
+    public void removeWatchedMovie(Long userId, Long movieId) {
+        UserMovieId watchedId = new UserMovieId(userId, movieId);
+        if (userWatchedRepository.existsById(watchedId)) {
+            userWatchedRepository.deleteById(watchedId);
+        } else {
+            throw new ResourceNotFoundException("Watched record not found for user " + userId + " and movie " + movieId);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<MovieResponseDTO> getWatchedMovies(Long userId, Pageable pageable) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("User not found with id: " + userId);
+        }
+        User user = userRepository.findById(userId).get();
+        
+        List<Movie> watchedMoviesList = user.getWatchedMovies().stream()
+                .map(UserWatched::getMovie)
+                .collect(Collectors.toList());
+
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), watchedMoviesList.size());
+        
+        Page<Movie> pageResult = new PageImpl<>(watchedMoviesList.subList(start, end), pageable, watchedMoviesList.size());
+
+        return pagedResponseMapper.toPagedResponse(pageResult, MovieResponseDTO.class);
     }
 }

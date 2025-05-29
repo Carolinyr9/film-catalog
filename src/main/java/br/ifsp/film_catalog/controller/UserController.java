@@ -151,12 +151,13 @@ public class UserController {
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')") // Typically only admins can delete users
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
 
+    // --- Favorite Movies Endpoints ---
     @Operation(summary = "Adicionar um filme aos favoritos do usuário", description = "Adiciona um filme à lista de favoritos de um usuário.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Filme favoritado com sucesso"),
@@ -196,5 +197,47 @@ public class UserController {
             @PageableDefault(size = 10, sort = "title") Pageable pageable) {
         PagedResponse<MovieResponseDTO> favoriteMovies = userService.getFavoriteMovies(userId, pageable);
         return ResponseEntity.ok(favoriteMovies);
+    }
+
+    // --- Watched Movies Endpoints ---
+    @Operation(summary = "Marcar um filme como assistido pelo usuário", description = "Marca um filme como assistido para um usuário específico.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Filme marcado como assistido com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Usuário ou filme não encontrado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
+    })
+    @PostMapping("/{userId}/watched/{movieId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<Void> markMovieAsWatched(@PathVariable Long userId, @PathVariable Long movieId) {
+        userService.addWatchedMovie(userId, movieId);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Desmarcar um filme como assistido pelo usuário", description = "Remove a marcação de assistido de um filme para um usuário específico.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Filme desmarcado como assistido com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Registro de 'assistido' não encontrado, ou usuário/filme não encontrado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
+    })
+    @DeleteMapping("/{userId}/watched/{movieId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<Void> unmarkMovieAsWatched(@PathVariable Long userId, @PathVariable Long movieId) {
+        userService.removeWatchedMovie(userId, movieId);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Listar filmes assistidos pelo usuário", description = "Retorna uma lista paginada dos filmes que um usuário marcou como assistidos.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de filmes assistidos recuperada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
+    })
+    @GetMapping("/{userId}/watched")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<PagedResponse<MovieResponseDTO>> getWatchedMovies(
+            @PathVariable Long userId,
+            @PageableDefault(size = 10, sort = "title") Pageable pageable) {
+        PagedResponse<MovieResponseDTO> watchedMovies = userService.getWatchedMovies(userId, pageable);
+        return ResponseEntity.ok(watchedMovies);
     }
 }
