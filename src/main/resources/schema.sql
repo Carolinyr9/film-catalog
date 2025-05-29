@@ -95,6 +95,8 @@ CREATE TABLE reviews (
     screenplay_score INT,
     cinematography_score INT,
     general_score INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
     likes_count INT NOT NULL DEFAULT 0,
     user_watched_user_id BIGINT NOT NULL, -- FK part 1 to user_watcheds
     user_watched_movie_id BIGINT NOT NULL, -- FK part 2 to user_watcheds
@@ -138,7 +140,8 @@ CREATE TABLE watchlist_movies (
 CREATE TABLE content_flags (
     reporter_user_id BIGINT NOT NULL, -- From UserReviewId.user (or userId)
     review_id BIGINT NOT NULL,        -- From UserReviewId.review (or reviewId)
-    flagged_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
     flag_reason VARCHAR(255) NOT NULL,
     PRIMARY KEY (reporter_user_id, review_id),
     CONSTRAINT fk_flag_reporter FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE,

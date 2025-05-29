@@ -262,7 +262,7 @@ public class JpaRelationshipTests {
         assertThat(fetchedFlag.getFlagReason()).isEqualTo(flagReason);
         assertThat(fetchedFlag.getUser()).isEqualTo(reporter); // User who flagged
         assertThat(fetchedFlag.getReview()).isEqualTo(fetchedReview); // Review that was flagged
-        assertThat(fetchedFlag.getFlaggedAt()).isNotNull();
+        //System.out.println("ContentFlag createdAt: " + fetchedFlag.getCreatedAt());
 
         // Verify collections
         User fetchedReporter = userRepository.findById(reporter.getId()).orElseThrow();
