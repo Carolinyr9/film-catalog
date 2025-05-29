@@ -2,16 +2,19 @@ package br.ifsp.film_catalog.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.util.Set;
+import java.util.HashSet;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserRequestDTO {
+public class UserRequestWithRolesDTO {
 
     @NotBlank(message = "Name cannot be blank.")
     @Size(max = 255, message = "Name cannot exceed 255 characters.")
@@ -31,4 +34,9 @@ public class UserRequestDTO {
     @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{8,}$",
     message = "Password must contain at least one digit, one lowercase letter, one uppercase letter, one special character, and no whitespace.")
     private String password;
+
+    // For assigning roles during user creation.
+    // Service layer will fetch Role entities based on these IDs.
+    @NotEmpty(message = "At least one role must be provided.")
+    private Set<RoleRequestDTO> roles = new HashSet<>();
 }

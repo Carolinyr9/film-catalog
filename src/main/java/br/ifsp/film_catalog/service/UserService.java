@@ -1,8 +1,10 @@
 package br.ifsp.film_catalog.service;
 
 import br.ifsp.film_catalog.dto.MovieResponseDTO;
+import br.ifsp.film_catalog.dto.RoleRequestDTO;
 import br.ifsp.film_catalog.dto.UserPatchDTO;
 import br.ifsp.film_catalog.dto.UserRequestDTO;
+import br.ifsp.film_catalog.dto.UserRequestWithRolesDTO;
 import br.ifsp.film_catalog.dto.UserResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
 import br.ifsp.film_catalog.exception.ResourceNotFoundException;
@@ -10,8 +12,12 @@ import br.ifsp.film_catalog.mapper.PagedResponseMapper;
 import br.ifsp.film_catalog.model.Movie;
 import br.ifsp.film_catalog.model.Role;
 import br.ifsp.film_catalog.model.User;
+import br.ifsp.film_catalog.model.UserFavorite;
+import br.ifsp.film_catalog.model.enums.RoleName;
+import br.ifsp.film_catalog.model.key.UserMovieId;
 import br.ifsp.film_catalog.repository.MovieRepository;
 import br.ifsp.film_catalog.repository.RoleRepository;
+import br.ifsp.film_catalog.repository.UserFavoriteRepository;
 import br.ifsp.film_catalog.repository.UserRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -32,6 +38,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final MovieRepository movieRepository;
+    private final UserFavoriteRepository userFavoriteRepository;
     private final PasswordEncoder passwordEncoder;
     private final ModelMapper modelMapper;
     private final PagedResponseMapper pagedResponseMapper;
@@ -39,12 +46,14 @@ public class UserService {
     public UserService(UserRepository userRepository,
                          RoleRepository roleRepository,
                          MovieRepository movieRepository,
+                         UserFavoriteRepository userFavoriteRepository,
                          PasswordEncoder passwordEncoder,
                          ModelMapper modelMapper,
                          PagedResponseMapper pagedResponseMapper) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.movieRepository = movieRepository;
+        this.userFavoriteRepository = userFavoriteRepository;
         this.passwordEncoder = passwordEncoder;
         this.modelMapper = modelMapper;
         this.pagedResponseMapper = pagedResponseMapper;
@@ -72,6 +81,17 @@ public class UserService {
 
     @Transactional
     public UserResponseDTO createUser(UserRequestDTO userRequestDTO) {
+        Set<RoleRequestDTO> roles = new HashSet<>();
+        roles.add(new RoleRequestDTO("ROLE_USER"));
+        
+        UserRequestWithRolesDTO userRequestWithRolesDTO = modelMapper.map(userRequestDTO, UserRequestWithRolesDTO.class);
+        userRequestWithRolesDTO.setRoles(roles);
+
+        return createUser(userRequestWithRolesDTO);
+    }
+
+    @Transactional
+    public UserResponseDTO createUser(UserRequestWithRolesDTO userRequestDTO) {
         if (userRepository.existsByUsername(userRequestDTO.getUsername())) {
             throw new IllegalArgumentException("Username '" + userRequestDTO.getUsername() + "' already exists.");
         }
@@ -82,15 +102,9 @@ public class UserService {
         User user = modelMapper.map(userRequestDTO, User.class);
         user.setPassword(passwordEncoder.encode(userRequestDTO.getPassword()));
 
-        Set<Role> roles = new HashSet<>();
-        if (userRequestDTO.getRoleIds() != null && !userRequestDTO.getRoleIds().isEmpty()) {
-            roles = userRequestDTO.getRoleIds().stream()
-                    .map(roleId -> roleRepository.findById(roleId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId)))
-                    .collect(Collectors.toSet());
-        }
-
-        for (Role role : roles) {
+        for (RoleRequestDTO roleDTO : userRequestDTO.getRoles()) {
+            Role role = roleRepository.findByRoleName(RoleName.fromString(roleDTO.getRoleName()))
+                    .orElseThrow(() -> new ResourceNotFoundException("Role not found with name: " + roleDTO.getRoleName()));
             user.addRole(role);
         }
 
@@ -99,7 +113,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDTO updateUser(Long id, UserRequestDTO userRequestDTO) {
+    public UserResponseDTO updateUser(Long id, UserRequestWithRolesDTO userRequestDTO) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
@@ -127,15 +141,9 @@ public class UserService {
             user.setPassword(passwordEncoder.encode(userRequestDTO.getPassword()));
         }
 
-        Set<Role> roles = new HashSet<>();
-        if (userRequestDTO.getRoleIds() != null && !userRequestDTO.getRoleIds().isEmpty()) {
-            roles = userRequestDTO.getRoleIds().stream()
-                    .map(roleId -> roleRepository.findById(roleId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId)))
-                    .collect(Collectors.toSet());
-        }
-
-        for (Role role : roles) {
+        for (RoleRequestDTO roleDTO : userRequestDTO.getRoles()) {
+            Role role = roleRepository.findByRoleName(RoleName.fromString(roleDTO.getRoleName()))
+                    .orElseThrow(() -> new ResourceNotFoundException("Role not found with name: " + roleDTO.getRoleName()));
             user.addRole(role);
         }
 
@@ -209,13 +217,17 @@ public class UserService {
 
     @Transactional
     public void addFavoriteMovie(Long userId, Long movieId) {
+        UserMovieId favoriteId = new UserMovieId(userId, movieId);
+        if (userFavoriteRepository.existsById(favoriteId)) {
+            throw new IllegalArgumentException("Movie with id " + movieId + " is already a favorite for user with id " + userId);
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie not found with id: " + movieId));
 
-        user.addFavorite(movie);
-        userRepository.save(user);
+        UserFavorite favorite = new UserFavorite(user, movie);
+        userFavoriteRepository.save(favorite);
     }
 
     @Transactional

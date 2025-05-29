@@ -3,6 +3,7 @@ package br.ifsp.film_catalog.controller;
 import br.ifsp.film_catalog.dto.MovieResponseDTO;
 import br.ifsp.film_catalog.dto.UserPatchDTO;
 import br.ifsp.film_catalog.dto.UserRequestDTO;
+import br.ifsp.film_catalog.dto.UserRequestWithRolesDTO;
 import br.ifsp.film_catalog.dto.UserResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
 import br.ifsp.film_catalog.exception.ErrorResponse;
@@ -80,19 +81,30 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-
-    @Operation(summary = "Criar um novo usuário (Registrar)", description = "Cria um novo usuário. Este endpoint pode ser público para registro, ou protegido para criação por administradores.")
+    @Operation(summary = "Registrar um novo usuário (público)", description = "Permite que qualquer visitante se registre. O usuário receberá o papel 'ROLE_USER' por padrão.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos / Erro de validação (ex: username/email já existe, ID de role inválido)",
-                         content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "403", description = "Acesso negado (se protegido e sem permissão)",
+            @ApiResponse(responseCode = "201", description = "Usuário registrado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos / Erro de validação (ex: username/email já existe)",
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PostMapping("/register") // Or simply @PostMapping if it's admin-only creation
-    // @PreAuthorize("hasRole('ADMIN')") // Uncomment if only admins can create users directly
-    public ResponseEntity<UserResponseDTO> createUser(@Valid @RequestBody UserRequestDTO userRequestDTO) {
+    @PostMapping("/register")
+    public ResponseEntity<UserResponseDTO> registerUser(@Valid @RequestBody UserRequestDTO userRequestDTO) {
         UserResponseDTO createdUser = userService.createUser(userRequestDTO);
+        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "Criar um novo usuário (Admin)", description = "Permite que um administrador crie um novo usuário, podendo especificar papéis. Requer perfil de ADMIN.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso pelo administrador"),
+            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos / Erro de validação (ex: username/email já existe, ID de role inválido)",
+                         content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (Requer perfil de ADMIN)",
+                         content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserResponseDTO> createUserByAdmin(@Valid @RequestBody UserRequestWithRolesDTO userRequestWithRolesDTO) {
+        UserResponseDTO createdUser = userService.createUser(userRequestWithRolesDTO);
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
 
@@ -107,8 +119,8 @@ public class UserController {
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #id)")
-    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id, @Valid @RequestBody UserRequestDTO userRequestDTO) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id, @Valid @RequestBody UserRequestWithRolesDTO userRequestDTO) {
         UserResponseDTO updatedUser = userService.updateUser(id, userRequestDTO);
         return ResponseEntity.ok(updatedUser);
     }

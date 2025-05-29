@@ -82,7 +82,7 @@ class MovieServiceTest {
         movieResponseDTO1 = new MovieResponseDTO(1L, "Inception", "A mind-bending thriller", 2010, 148, ContentRating.A12,
                 Set.of(new br.ifsp.film_catalog.dto.GenreResponseDTO(1L, "Action")));
 
-        movieRequestDTO1 = new MovieRequestDTO("Inception", "A mind-bending thriller", 2010, 148, "A12", Set.of(1L));
+        movieRequestDTO1 = new MovieRequestDTO("Inception", "A mind-bending thriller", 2010, 148, "A12", Set.of(genreAction));
     }
 
     @Test

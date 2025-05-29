@@ -72,6 +72,12 @@ public class MovieService {
              throw new IllegalArgumentException("Movie with title '" + movieRequestDTO.getTitle() + "' already exists.");
         }
         Movie movie = modelMapper.map(movieRequestDTO, Movie.class);
+        // Add DTO genre to movie
+        for (Genre genre : movieRequestDTO.getGenres()) {
+            Genre existingGenre = genreRepository.findByNameIgnoreCase(genre.getName())
+                    .orElseThrow(() -> new ResourceNotFoundException("Genre not found: " + genre.getName()));
+            movie.addGenre(existingGenre);
+        }
         Movie savedMovie = movieRepository.save(movie);
         return modelMapper.map(savedMovie, MovieResponseDTO.class);
     }

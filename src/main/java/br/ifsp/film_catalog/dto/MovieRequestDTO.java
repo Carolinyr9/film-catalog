@@ -1,6 +1,7 @@
 package br.ifsp.film_catalog.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
@@ -9,7 +10,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.util.Set;
-import java.util.HashSet;
+
+import br.ifsp.film_catalog.model.Genre;
 
 @Data
 @NoArgsConstructor
@@ -33,5 +35,6 @@ public class MovieRequestDTO {
     @Pattern(regexp = "AL|A10|A12|A14|A16|A18|OTHER", flags = Pattern.Flag.CASE_INSENSITIVE, message = "Invalid content rating value. Must be one of: AL, A10, A12, A14, A16, A18, OTHER.")
     private String contentRating;
 
-    private Set<Long> genreIds = new HashSet<>();
+    @NotEmpty(message = "Must have at least one genre")
+    private Set<Genre> genres;
 }

@@ -92,6 +92,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Trata exceções de argumentos inválidos, como parâmetros de requisição incorretos.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        ErrorResponse errorResponse = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
      * Trata exceções genéricas que não foram capturadas pelos handlers anteriores.
      */
     @ExceptionHandler(Exception.class)
