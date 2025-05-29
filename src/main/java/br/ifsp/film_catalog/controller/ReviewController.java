@@ -1,195 +1,163 @@
 package br.ifsp.film_catalog.controller;
 
-import br.ifsp.film_catalog.dto.ReviewDTO;
-import br.ifsp.film_catalog.dto.WatchlistDTO;
-import br.ifsp.film_catalog.exception.InvalidMovieStateException;
-import br.ifsp.film_catalog.exception.InvalidReviewStateException;
-import br.ifsp.film_catalog.exception.ResourceNotFoundException;
-import br.ifsp.film_catalog.model.Review;
-import br.ifsp.film_catalog.repository.ReviewRepository;
-import br.ifsp.film_catalog.repository.UserRepository;
-import br.ifsp.film_catalog.repository.WatchlistRepository;
-import br.ifsp.film_catalog.security.UserAuthenticated;
+import br.ifsp.film_catalog.dto.ReviewRequestDTO;
+import br.ifsp.film_catalog.dto.ReviewResponseDTO;
+import br.ifsp.film_catalog.dto.page.PagedResponse;
+import br.ifsp.film_catalog.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.file.AccessDeniedException;
-
-@Tag(name = "Reviews", description = "API para catalogo de filmes")
+@Tag(name = "Reviews", description = "API para gerenciamento de avaliações de filmes")
 @Validated
 @RestController
-@RequestMapping("/api/movies/reviews")
+@RequestMapping("/api")
 public class ReviewController {
 
-    private final ReviewRepository reviewRepository;
-    private final ModelMapper reviewMapper;
-    private final UserRepository userRepository;
-    private final WatchlistRepository watchlistRepository;
+    private final ReviewService reviewService;
 
-    @Autowired
-    public ReviewController(ReviewRepository reviewRepository, ModelMapper reviewMapper, UserRepository userRepository, WatchlistRepository watchlistRepository) {
-        this.reviewRepository = reviewRepository;
-        this.reviewMapper = reviewMapper;
-        this.userRepository = userRepository;
-        this.watchlistRepository = watchlistRepository;
+    public ReviewController(ReviewService reviewService) {
+        this.reviewService = reviewService;
     }
 
-    @Operation(summary = "Cria uma nova review para o usuário")
+    @Operation(summary = "Criar uma nova avaliação para um filme assistido por um usuário")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Review criada com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Usuário ou Watchlist não encontrados", content = @Content),
-            @ApiResponse(responseCode = "422", description = "Filme ainda não assistido", content = @Content)
+            @ApiResponse(responseCode = "201", description = "Avaliação criada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (usuário não pode avaliar por outro)"),
+            @ApiResponse(responseCode = "404", description = "Usuário ou Filme não encontrado"),
+            @ApiResponse(responseCode = "409", description = "Filme não assistido pelo usuário ou já avaliado")
     })
-    @PostMapping("/register/{userId}")
-    public ResponseEntity<?> createReviewByUser(@PathVariable Long userId,
-                                                @AuthenticationPrincipal UserAuthenticated authentication,
-                                                @RequestBody @Validated ReviewDTO dto) {
-
-        var user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
-        if (dto.getWatchlistId() != null) {
-            var watchlist = watchlistRepository.findById(dto.getWatchlistId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Watchlist não encontrada"));
-
-            if (!watchlist.movieIsWatched(dto.getMovieId())) {
-                throw new InvalidMovieStateException("Esse filme ainda não foi assistido");
-            }
-        }
-
-        Review review = reviewMapper.map(dto, Review.class);
-        review.setUser(user);
-        reviewRepository.save(review);
-
-        return ResponseEntity.ok("Review criada com sucesso");
+    @PostMapping("/users/{userId}/movies/{movieId}/reviews")
+    @PreAuthorize("hasRole('USER') and @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<ReviewResponseDTO> createReview(
+            @PathVariable Long userId,
+            @PathVariable Long movieId,
+            @Valid @RequestBody ReviewRequestDTO reviewRequestDTO) {
+        ReviewResponseDTO createdReview = reviewService.createReview(userId, movieId, reviewRequestDTO);
+        return new ResponseEntity<>(createdReview, HttpStatus.CREATED);
     }
 
-    @Operation(summary = "Listar todas as reviews de um usuário")
+    @Operation(summary = "Obter uma avaliação específica pelo ID")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Reviews encontradas com sucesso"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Avaliação recuperada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Avaliação não encontrada")
     })
-    @GetMapping("/{userId}")
-    public ResponseEntity<Iterable<Review>> getAllReviewsByUser(@PathVariable Long userId,
-                                                                @AuthenticationPrincipal UserAuthenticated authentication,
-                                                                Pageable pageable) {
-        var reviews = reviewRepository.findAllByUser_Id(userId, pageable);
+    @GetMapping("/reviews/{reviewId}")
+    public ResponseEntity<ReviewResponseDTO> getReviewById(@PathVariable Long reviewId) {
+        ReviewResponseDTO review = reviewService.getReviewById(reviewId);
+        return ResponseEntity.ok(review);
+    }
+
+    @Operation(summary = "Listar todas as avaliações (não ocultas) para um filme específico")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Avaliações recuperadas com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Filme não encontrado")
+    })
+    @GetMapping("/movies/{movieId}/reviews")
+    public ResponseEntity<PagedResponse<ReviewResponseDTO>> getReviewsByMovie(
+            @PathVariable Long movieId,
+            @PageableDefault(size = 10, sort = "likesCount") Pageable pageable) {
+        PagedResponse<ReviewResponseDTO> reviews = reviewService.getReviewsByMovie(movieId, pageable);
         return ResponseEntity.ok(reviews);
     }
 
-    @Operation(summary = "Curtir review", description = "Incrementa a quantidade de curtidas de uma review específica")
+    @Operation(summary = "Listar todas as avaliações (não ocultas) feitas por um usuário específico")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Review curtida com sucesso",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Review.class))),
-            @ApiResponse(responseCode = "404", description = "Review não encontrada", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Avaliações recuperadas com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
     })
-    @PatchMapping("/like/{reviewId}")
-    public ResponseEntity<Review> likeReview(@PathVariable Long reviewId) {
-        var review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review não encontrada"));
-        review.setCurtidas(review.getCurtidas() + 1);
-        reviewRepository.save(review);
-        return ResponseEntity.ok(review);
+    @GetMapping("/users/{userId}/reviews")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<PagedResponse<ReviewResponseDTO>> getReviewsByUser(
+            @PathVariable Long userId,
+            @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
+        PagedResponse<ReviewResponseDTO> reviews = reviewService.getReviewsByUser(userId, pageable);
+        return ResponseEntity.ok(reviews);
     }
 
-    @Operation(summary = "Reportar review", description = "Incrementa a quantidade de denúncias de uma review específica")
+    @Operation(summary = "Atualizar uma avaliação existente")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Review denunciada com sucesso",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Review.class))),
-            @ApiResponse(responseCode = "404", description = "Review não encontrada", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Avaliação atualizada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (usuário não é o proprietário da avaliação)"),
+            @ApiResponse(responseCode = "404", description = "Avaliação não encontrada")
     })
-    @PatchMapping("/report/{reviewId}")
-    public ResponseEntity<Review> reportReview(@PathVariable Long reviewId) {
-        var review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review não encontrada"));
-
-        review.setDenuncias(review.getDenuncias() + 1);
-
-        if (review.getDenuncias() >= review.getMIN_DENUNCIAS() && !review.isOculta()) {
-            review.setOculta(true);
-        }
-
-        reviewRepository.save(review);
-        return ResponseEntity.ok(review);
+    @PutMapping("/reviews/{reviewId}")
+    // userId is passed from the authenticated principal by securityService.isReviewOwner
+    @PreAuthorize("@securityService.isReviewOwner(authentication, #reviewId)")
+    public ResponseEntity<ReviewResponseDTO> updateReview(
+            @PathVariable Long reviewId,
+            @Valid @RequestBody ReviewRequestDTO reviewRequestDTO,
+            @RequestAttribute("userIdFromPrincipal") Long userId // Injetado pelo SecurityService (ver abaixo)
+    ) {
+        ReviewResponseDTO updatedReview = reviewService.updateReview(reviewId, userId, reviewRequestDTO);
+        return ResponseEntity.ok(updatedReview);
     }
 
-    @Operation(summary = "Deletar review", description = "Deleta uma review específica")
+    @Operation(summary = "Deletar uma avaliação")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Review deletada com sucesso",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Review.class))),
-            @ApiResponse(responseCode = "404", description = "Review não encontrada", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content)
+            @ApiResponse(responseCode = "204", description = "Avaliação deletada com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (usuário não é proprietário nem admin)"),
+            @ApiResponse(responseCode = "404", description = "Avaliação não encontrada")
     })
-    @DeleteMapping("/{reviewId}")
-    public ResponseEntity<Review> deleteReview(@PathVariable Long userId,
-                                               @PathVariable Long reviewId) throws AccessDeniedException {
-        var review = getUserReviewOrThrow(userId, reviewId);
-
-        reviewRepository.delete(review);
+    @DeleteMapping("/reviews/{reviewId}")
+    @PreAuthorize("@securityService.isReviewOwner(authentication, #reviewId)")
+    public ResponseEntity<Void> deleteReview(
+            @PathVariable Long reviewId,
+             @RequestAttribute(name = "userIdFromPrincipal", required = false) Long userIdPrincipal // Injetado pelo SecurityService
+    ) {
+        // O userIdPrincipal é usado pelo securityService.isReviewOwner.
+        // O service deleteReview pode usar o userId do principal se precisar, mas a autorização já foi feita.
+        reviewService.deleteReview(reviewId, userIdPrincipal);
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Atualizar review", description = "Atualiza uma review específica")
+    @Operation(summary = "Curtir uma avaliação")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Review atualizada com sucesso",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Review.class))),
-            @ApiResponse(responseCode = "404", description = "Review não encontrada", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Avaliação curtida com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Avaliação não encontrada")
     })
-    @PutMapping("/{reviewId}")
-    public ResponseEntity<Review> updateReview(@PathVariable Long userId,
-                                               @PathVariable Long reviewId,
-                                               @RequestBody @Validated ReviewDTO dto) throws AccessDeniedException {
-        var review = getUserReviewOrThrow(userId, reviewId);
-        Review updated = reviewMapper.map(dto, Review.class);
-        updated.setId(reviewId);
-        updated.setUser(review.getUser());
-        reviewRepository.save(updated);
-        return ResponseEntity.ok(updated);
+    @PostMapping("/reviews/{reviewId}/like")
+    @PreAuthorize("isAuthenticated()") // Qualquer usuário autenticado pode curtir
+    public ResponseEntity<ReviewResponseDTO> likeReview(@PathVariable Long reviewId) {
+        ReviewResponseDTO review = reviewService.likeReview(reviewId);
+        return ResponseEntity.ok(review);
     }
 
-    @Operation(summary = "Oculta uma review")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Review ocultada com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Review não encontrada", content = @Content),
-            @ApiResponse(responseCode = "422", description = "Review não pode ser ocultada", content = @Content)
+    @Operation(summary = "Ocultar uma avaliação (Admin)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Status de ocultação da avaliação atualizado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (Requer perfil de ADMIN)"),
+            @ApiResponse(responseCode = "404", description = "Avaliação não encontrada")
     })
+    @PatchMapping("/reviews/{reviewId}/hide")
     @PreAuthorize("hasRole('ADMIN')")
-    @PatchMapping("/hide/{reviewId}")
-    public ResponseEntity<Review> hideReview(@PathVariable Long reviewId) {
-        var review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review não encontrada"));
-
-        if (review.getDenuncias() >= review.getMIN_DENUNCIAS()) {
-            review.setOculta(true);
-            reviewRepository.save(review);
-            return ResponseEntity.ok(review);
-        } else {
-            throw new InvalidReviewStateException("Review não pode ser ocultada pois ainda não atingiu o número mínimo de denúncias.");
-        }
+    public ResponseEntity<ReviewResponseDTO> hideReview(@PathVariable Long reviewId) {
+        ReviewResponseDTO review = reviewService.toggleHideReview(reviewId, true);
+        return ResponseEntity.ok(review);
     }
 
-    private Review getUserReviewOrThrow(Long userId, Long reviewId) throws AccessDeniedException {
-        var review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review não encontrada"));
-        if (!review.getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("Review não pertence ao usuário");
-        }
-        return review;
+    @Operation(summary = "Mostrar uma avaliação previamente oculta (Admin)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Status de ocultação da avaliação atualizado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (Requer perfil de ADMIN)"),
+            @ApiResponse(responseCode = "404", description = "Avaliação não encontrada")
+    })
+    @PatchMapping("/reviews/{reviewId}/unhide")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ReviewResponseDTO> unhideReview(@PathVariable Long reviewId) {
+        ReviewResponseDTO review = reviewService.toggleHideReview(reviewId, false);
+        return ResponseEntity.ok(review);
     }
-
 }
