@@ -52,6 +52,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/users/{userId}/watched/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/users/{userId}/watched/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/users/{userId}/watched/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/users/{userId}/watchlists/**").authenticated()      // GET watchlist(s)
+                        .requestMatchers(HttpMethod.POST, "/api/users/{userId}/watchlists/**").authenticated()     // POST to create watchlist or add movie
+                        .requestMatchers(HttpMethod.PUT, "/api/users/{userId}/watchlists/**").authenticated()      // PUT to update watchlist
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/{userId}/watchlists/**").authenticated()
                         .requestMatchers("/api/users/**").authenticated()
 
                         .requestMatchers("/api/movies/**").permitAll() 
