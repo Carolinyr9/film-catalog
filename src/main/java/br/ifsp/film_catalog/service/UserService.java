@@ -9,6 +9,7 @@ import br.ifsp.film_catalog.dto.UserResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
 import br.ifsp.film_catalog.exception.ResourceNotFoundException;
 import br.ifsp.film_catalog.mapper.PagedResponseMapper;
+import br.ifsp.film_catalog.model.Genre;
 import br.ifsp.film_catalog.model.Movie;
 import br.ifsp.film_catalog.model.Role;
 import br.ifsp.film_catalog.model.User;
@@ -22,6 +23,7 @@ import br.ifsp.film_catalog.repository.UserFavoriteRepository;
 import br.ifsp.film_catalog.repository.UserRepository;
 import br.ifsp.film_catalog.repository.UserWatchedRepository;
 
+import java.util.Map;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -34,7 +36,9 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class UserService {
@@ -310,4 +314,44 @@ public class UserService {
 
         return pagedResponseMapper.toPagedResponse(pageResult, MovieResponseDTO.class);
     }
+
+    public List<Genre> getTopGenresForUser(Long userId, int limit) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("User not found with id: " + userId);
+        }
+        User user = userRepository.findById(userId).get();
+
+        List<Movie> watched = user.getWatchedMovies().stream()
+            .map(UserWatched::getMovie).toList();
+        
+        List<Movie> favorites = user.getFavoriteMovies().stream()
+            .map(UserFavorite::getMovie).toList();
+
+        List<Movie> all = Stream.concat(watched.stream(), favorites.stream()).toList();
+
+        Map<Genre, Long> genreFrequency = all.stream()
+            .flatMap(movie -> movie.getGenres().stream())
+            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+        return genreFrequency.entrySet().stream()
+            .sorted(Map.Entry.<Genre, Long>comparingByValue().reversed())
+            .limit(limit)
+            .map(Map.Entry::getKey)
+            .toList();
+    }
+
+    public PagedResponse<MovieResponseDTO> getRecommendedMoviesByGenres(List<Genre> genres, Pageable pageable){
+        if (genres == null || genres.isEmpty()) {
+            throw new IllegalArgumentException("Genres list cannot be null or empty.");
+        }
+
+        List<Movie> recommendedMovies = movieRepository.findByGenresContaining(genres.get(0).getId(), pageable)
+                .stream()
+                .filter(movie -> movie.getGenres().stream().anyMatch(genres::contains))
+                .collect(Collectors.toList());
+
+        Page<Movie> moviePage = new PageImpl<>(recommendedMovies, pageable, recommendedMovies.size());
+        return pagedResponseMapper.toPagedResponse(moviePage, MovieResponseDTO.class);
+    }
+
 }

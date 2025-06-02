@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -171,4 +170,18 @@ public class MovieController {
         movieService.deleteMovie(id);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "Buscar filmes por ano de lançamento", description = "Retorna uma lista paginada de filmes lançados no ano especificado.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de filmes recuperada com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (se a segurança estiver habilitada)", 
+                         content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping("/movies/highlighted")
+    public PagedResponse<MovieResponseDTO> getHighlightedMovies(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return movieService.getHighlightedMovies(page, size);
+    }
+
 }

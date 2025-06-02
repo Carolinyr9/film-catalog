@@ -7,6 +7,9 @@ import br.ifsp.film_catalog.dto.UserRequestWithRolesDTO;
 import br.ifsp.film_catalog.dto.UserResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
 import br.ifsp.film_catalog.exception.ErrorResponse;
+import br.ifsp.film_catalog.model.Genre;
+import br.ifsp.film_catalog.model.Movie;
+import br.ifsp.film_catalog.repository.MovieRepository;
 import br.ifsp.film_catalog.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,6 +18,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+
+import java.util.List;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -23,6 +29,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+
 @Tag(name = "Usuários", description = "API para gerenciamento de usuários")
 @Validated
 @RestController
@@ -30,9 +37,11 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final MovieRepository movieRepository;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, MovieRepository movieRepository) {
         this.userService = userService;
+        this.movieRepository = movieRepository;
     }
 
     @Operation(summary = "Listar todos os usuários", description = "Retorna uma lista paginada de todos os usuários.")
@@ -240,4 +249,22 @@ public class UserController {
         PagedResponse<MovieResponseDTO> watchedMovies = userService.getWatchedMovies(userId, pageable);
         return ResponseEntity.ok(watchedMovies);
     }
+
+
+    @Operation(summary = "Listar filmes recomendados para o usuário", description = "Retorna uma lista paginada dos filmes recomendados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de filmes recomendados"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
+            @ApiResponse(responseCode = "400", description = "Gêneros não encontrados ou inválidos"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
+    })
+    @GetMapping("/{userId}/recommendations")
+    public ResponseEntity<PagedResponse<MovieResponseDTO>> getPersonalizedRecommendations(
+            @PathVariable Long userId,
+            @PageableDefault(size = 10, sort = "title") Pageable pageable) {
+        List<Genre> topGenres = userService.getTopGenresForUser(userId, 3);
+        PagedResponse<MovieResponseDTO> recommendedMovies = userService.getRecommendedMoviesByGenres(topGenres, pageable);
+        return ResponseEntity.ok(recommendedMovies);
+    }
+    
 }
