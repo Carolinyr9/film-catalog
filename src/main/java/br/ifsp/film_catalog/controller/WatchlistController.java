@@ -1,191 +1,141 @@
 package br.ifsp.film_catalog.controller;
 
-import br.ifsp.film_catalog.dto.WatchlistDTO;
-import br.ifsp.film_catalog.exception.InvalidMovieStateException;
-import br.ifsp.film_catalog.exception.ResourceNotFoundException;
-import br.ifsp.film_catalog.model.Movie;
-import br.ifsp.film_catalog.model.Watchlist;
-import br.ifsp.film_catalog.repository.MovieRepository;
-import br.ifsp.film_catalog.repository.UserRepository;
-import br.ifsp.film_catalog.repository.WatchlistRepository;
+import br.ifsp.film_catalog.dto.WatchlistRequestDTO;
+import br.ifsp.film_catalog.dto.WatchlistResponseDTO;
+import br.ifsp.film_catalog.dto.page.PagedResponse;
+import br.ifsp.film_catalog.service.WatchlistService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.file.AccessDeniedException;
-import java.util.Optional;
-
-@Tag(name = "Watchlist", description = "API para catálogo de filmes")
+@Tag(name = "Watchlists", description = "API para gerenciamento de watchlists de usuários")
 @Validated
 @RestController
-@RequestMapping("/api/watchlist")
+@RequestMapping("/api/users/{userId}/watchlists")
 public class WatchlistController {
 
-    private final WatchlistRepository watchlistRepository;
-    private final ModelMapper watchMapper;
-    private final UserRepository userRepository;
-    private final MovieRepository movieRepository;
+    private final WatchlistService watchlistService;
 
-    @Autowired
-    public WatchlistController(ModelMapper watchMapper, WatchlistRepository watchlistRepository,
-                               UserRepository userRepository, MovieRepository movieRepository) {
-        this.watchMapper = watchMapper;
-        this.watchlistRepository = watchlistRepository;
-        this.userRepository = userRepository;
-        this.movieRepository = movieRepository;
+    public WatchlistController(WatchlistService watchlistService) {
+        this.watchlistService = watchlistService;
     }
 
-    @Operation(summary = "Listar todas as watchlists de um usuário")
+    @Operation(summary = "Criar uma nova watchlist para o usuário especificado")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Watchlists encontradas com sucesso"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content)
+            @ApiResponse(responseCode = "201", description = "Watchlist criada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
     })
-    @GetMapping("/{userId}")
-    public ResponseEntity<Page<WatchlistDTO>> getAllWatchlistsByUser(@PathVariable Long userId, Pageable pageable) {
-        var watchlists = watchlistRepository.findAllByUser_Id(userId, pageable)
-                .map(watchlist -> watchMapper.map(watchlist, WatchlistDTO.class));
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<WatchlistResponseDTO> createWatchlist(
+            @PathVariable Long userId,
+            @Valid @RequestBody WatchlistRequestDTO watchlistRequestDTO) {
+        WatchlistResponseDTO createdWatchlist = watchlistService.createWatchlist(userId, watchlistRequestDTO);
+        return new ResponseEntity<>(createdWatchlist, HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "Listar todas as watchlists do usuário especificado")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Watchlists recuperadas com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+    })
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<PagedResponse<WatchlistResponseDTO>> getWatchlistsByUser(
+            @PathVariable Long userId,
+            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
+        PagedResponse<WatchlistResponseDTO> watchlists = watchlistService.getWatchlistsByUser(userId, pageable);
         return ResponseEntity.ok(watchlists);
     }
 
-    @Operation(summary = "Cria uma nova watchlist para o usuário")
+    @Operation(summary = "Obter uma watchlist específica do usuário")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Watchlist criada com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Erro de validação", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Watchlist recuperada com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Watchlist ou Usuário não encontrado")
     })
-    @PostMapping("/register/{userId}")
-    public ResponseEntity<?> createWatchlistByUser(@PathVariable Long userId, @RequestBody @Validated WatchlistDTO dto) {
-        var user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-        Watchlist watchlist = watchMapper.map(dto, Watchlist.class);
-        watchlist.setUser(user);
-        watchlistRepository.save(watchlist);
-        return ResponseEntity.ok("Watchlist criada com sucesso");
+    @GetMapping("/{watchlistId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<WatchlistResponseDTO> getWatchlistByIdAndUser(
+            @PathVariable Long userId,
+            @PathVariable Long watchlistId) {
+        WatchlistResponseDTO watchlist = watchlistService.getWatchlistByIdAndUser(userId, watchlistId);
+        return ResponseEntity.ok(watchlist);
     }
 
-    @Operation(summary = "Atualiza uma watchlist do usuário")
+    @Operation(summary = "Atualizar uma watchlist do usuário")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Watchlist atualizada com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Watchlist não encontrada", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Watchlist ou Usuário não encontrado")
     })
-    @PutMapping("/{userId}/{watchlistId}")
-    public ResponseEntity<Void> updateWatchlistByUser(@PathVariable Long userId,
-                                                      @PathVariable Long watchlistId,
-                                                      @RequestBody @Validated WatchlistDTO dto) throws AccessDeniedException {
-        var watchlist = getUserWatchlistOrThrow(userId, watchlistId);
-        Watchlist updated = watchMapper.map(dto, Watchlist.class);
-        updated.setId(watchlistId);
-        updated.setUser(watchlist.getUser());
-        watchlistRepository.save(updated);
-        return ResponseEntity.noContent().build();
+    @PutMapping("/{watchlistId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<WatchlistResponseDTO> updateWatchlist(
+            @PathVariable Long userId,
+            @PathVariable Long watchlistId,
+            @Valid @RequestBody WatchlistRequestDTO watchlistRequestDTO) {
+        WatchlistResponseDTO updatedWatchlist = watchlistService.updateWatchlist(userId, watchlistId, watchlistRequestDTO);
+        return ResponseEntity.ok(updatedWatchlist);
     }
 
-    @Operation(summary = "Deleta uma watchlist do usuário")
+    @Operation(summary = "Deletar uma watchlist do usuário")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Watchlist deletada com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Watchlist não encontrada", content = @Content)
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Watchlist ou Usuário não encontrado")
     })
-    @DeleteMapping("/{userId}/{watchlistId}")
-    public ResponseEntity<Void> deleteWatchlistByUser(@PathVariable Long userId, @PathVariable Long watchlistId) throws AccessDeniedException {
-        var watchlist = getUserWatchlistOrThrow(userId, watchlistId);
-        watchlistRepository.delete(watchlist);
+    @DeleteMapping("/{watchlistId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<Void> deleteWatchlist(
+            @PathVariable Long userId,
+            @PathVariable Long watchlistId) {
+        watchlistService.deleteWatchlist(userId, watchlistId);
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Adiciona um filme à watchlist")
+    @Operation(summary = "Adicionar um filme a uma watchlist do usuário")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Filme adicionado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Watchlist ou Filme não encontrados", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Filme adicionado à watchlist com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Watchlist, Usuário ou Filme não encontrado")
     })
-    @PatchMapping("/{userId}/{watchlistId}/add/{movieId}")
-    public ResponseEntity<Void> addMovieToWatchlist(@PathVariable Long userId,
-                                                    @PathVariable Long watchlistId,
-                                                    @PathVariable Long movieId) throws AccessDeniedException {
-        var watchlist = getUserWatchlistOrThrow(userId, watchlistId);
-        var movie = getMovieOrThrow(movieId);
-        if (!watchlist.containsMovie(Optional.ofNullable(movie))) {
-            watchlist.addMovie(movie);
-            watchlistRepository.save(watchlist);
-        }
-        return ResponseEntity.ok().build();
+    @PostMapping("/{watchlistId}/movies/{movieId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<WatchlistResponseDTO> addMovieToWatchlist(
+            @PathVariable Long userId,
+            @PathVariable Long watchlistId,
+            @PathVariable Long movieId) {
+        WatchlistResponseDTO updatedWatchlist = watchlistService.addMovieToWatchlist(userId, watchlistId, movieId);
+        return ResponseEntity.ok(updatedWatchlist);
     }
 
-    @Operation(summary = "Remove um filme da watchlist")
+    @Operation(summary = "Remover um filme de uma watchlist do usuário")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Filme removido com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Watchlist ou Filme não encontrados", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Filme removido da watchlist com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Watchlist, Usuário ou Filme não encontrado")
     })
-    @PatchMapping("/{userId}/{watchlistId}/remove/{movieId}")
-    public ResponseEntity<Void> removeMovieFromWatchlist(@PathVariable Long userId,
-                                                         @PathVariable Long watchlistId,
-                                                         @PathVariable Long movieId) throws AccessDeniedException {
-        var watchlist = getUserWatchlistOrThrow(userId, watchlistId);
-        var movie = getMovieOrThrow(movieId);
-        if (watchlist.containsMovie(Optional.ofNullable(movie))) {
-            watchlist.removeMovie(movie);
-            watchlistRepository.save(watchlist);
-        }
-        return ResponseEntity.ok().build();
-    }
-
-    @Operation(summary = "Remove todos os filmes da watchlist")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Filmes removidos com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Watchlist não encontrada", content = @Content)
-    })
-    @PatchMapping("/{userId}/{watchlistId}/remove-all")
-    public ResponseEntity<Void> removeAllMoviesFromWatchlist(@PathVariable Long userId,
-                                                             @PathVariable Long watchlistId) throws AccessDeniedException {
-        var watchlist = getUserWatchlistOrThrow(userId, watchlistId);
-        watchlist.removeAllMovies();
-        watchlistRepository.save(watchlist);
-        return ResponseEntity.ok().build();
-    }
-
-    @Operation(summary = "Marca um filme da watchlist como assistido")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Filme marcado como assistido"),
-            @ApiResponse(responseCode = "404", description = "Watchlist ou Filme não encontrados", content = @Content)
-    })
-    @PatchMapping("/{userId}/{watchlistId}/watched/{movieId}")
-    public ResponseEntity<Void> markMovieAsWatched(@PathVariable Long userId,
-                                                   @PathVariable Long watchlistId,
-                                                   @PathVariable Long movieId) throws AccessDeniedException {
-        var watchlist = getUserWatchlistOrThrow(userId, watchlistId);
-        var movie = getMovieOrThrow(movieId);
-        if (!watchlist.containsMovie(Optional.ofNullable(movie))) {
-            throw new InvalidMovieStateException("O filme não está presente na watchlist");
-        }
-
-        if (watchlist.movieIsWatched(movieId)) {
-            throw new InvalidMovieStateException("O filme já foi assistido");
-        }
-
-        watchlist.markMovieAsWatched(movie);
-        watchlistRepository.save(watchlist);
-
-        return ResponseEntity.ok().build();
-    }
-
-    private Watchlist getUserWatchlistOrThrow(Long userId, Long watchlistId) throws AccessDeniedException {
-        var watchlist = watchlistRepository.findById(watchlistId)
-                .orElseThrow(() -> new ResourceNotFoundException("Watchlist não encontrada"));
-        if (!watchlist.getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("Watchlist não pertence ao usuário");
-        }
-        return watchlist;
-    }
-
-    private Movie getMovieOrThrow(Long movieId) {
-        return movieRepository.findById(movieId)
-                .orElseThrow(() -> new ResourceNotFoundException("Filme não encontrado"));
+    @DeleteMapping("/{watchlistId}/movies/{movieId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
+    public ResponseEntity<WatchlistResponseDTO> removeMovieFromWatchlist(
+            @PathVariable Long userId,
+            @PathVariable Long watchlistId,
+            @PathVariable Long movieId) {
+        WatchlistResponseDTO updatedWatchlist = watchlistService.removeMovieFromWatchlist(userId, watchlistId, movieId);
+        return ResponseEntity.ok(updatedWatchlist);
     }
 }

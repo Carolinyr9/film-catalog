@@ -1,90 +1,78 @@
 package br.ifsp.film_catalog.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
+import lombok.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
+import br.ifsp.film_catalog.model.common.BaseEntity;
+import br.ifsp.film_catalog.model.enums.ContentRating;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-public class Movie {
+@Table(name = "movies")
+public class Movie extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Setter
+    @Column(nullable = false, unique = true)
+    private String title;   
+    
+    @Setter
+    private String synopsis;
 
-    @NotBlank
-    private String titulo;
+    @Setter
+    private int releaseYear;
 
-    @ElementCollection
-    private List<String> generos = new ArrayList<>();
+    @Setter
+    private int duration;
 
-    private int anoLancamento;
+    @Setter
+    private ContentRating contentRating; // Classificação indicativa
 
-    private int duracao;
+    @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @JoinTable(
+            name = "movie_genres", // Name of the new join table
+            joinColumns = @JoinColumn(name = "movie_id"), // Column in join table for this entity's ID
+            inverseJoinColumns = @JoinColumn(name = "genre_id") // Column in join table for the other entity's ID
+    )
+    private Set<Genre> genres = new HashSet<>();
 
-    private String classificacaoIndicativa;
-
-    @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Review> reviews;
-
-    public Movie() {
+    /**
+     * Safely adds a Genre to this Movie, managing both sides of the relationship.
+     * @param genre The Genre to add.
+     */
+    public void addGenre(Genre genre) {
+        this.genres.add(genre);
+        genre.getMovies().add(this);
     }
 
-    public Movie(int anoLancamento, String classificacaoIndicativa, int duracao, Long id, String titulo, List<String> generos) {
-        this.anoLancamento = anoLancamento;
-        this.classificacaoIndicativa = classificacaoIndicativa;
-        this.duracao = duracao;
-        this.id = id;
-        this.titulo = titulo;
-        this.generos = generos;
+    /**
+     * Safely removes a Genre from this Movie, managing both sides of the relationship.
+     * @param genre The Genre to remove.
+     */
+    public void removeGenre(Genre genre) {
+        this.genres.remove(genre);
+        genre.getMovies().remove(this);
     }
 
-    public int getAnoLancamento() {
-        return anoLancamento;
-    }
+    @ManyToMany(mappedBy = "movies")
+    private Set<Watchlist> watchlists = new HashSet<>();
 
-    public void setAnoLancamento(int anoLancamento) {
-        this.anoLancamento = anoLancamento;
-    }
+    @OneToMany(
+        mappedBy = "movie",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private Set<UserFavorite> favoritedBy = new HashSet<>();
 
-    public String getClassificacaoIndicativa() {
-        return classificacaoIndicativa;
-    }
+    @OneToMany(
+        mappedBy = "movie",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private Set<UserWatched> watchedBy = new HashSet<>();
 
-    public void setClassificacaoIndicativa(String classificacaoIndicativa) {
-        this.classificacaoIndicativa = classificacaoIndicativa;
-    }
-
-    public int getDuracao() {
-        return duracao;
-    }
-
-    public void setDuracao(int duracao) {
-        this.duracao = duracao;
-    }
-
-    public List<String> getGeneros() {
-        return generos;
-    }
-
-    public void setGeneros(List<String> generos) {
-        this.generos = generos;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTitulo() {
-        return titulo;
-    }
-
-    public void setTitulo(String titulo) {
-        this.titulo = titulo;
-    }
 }

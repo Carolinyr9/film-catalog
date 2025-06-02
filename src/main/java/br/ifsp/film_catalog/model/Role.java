@@ -1,49 +1,31 @@
 package br.ifsp.film_catalog.model;
 
 import jakarta.persistence.*;
+import lombok.*;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
+import br.ifsp.film_catalog.model.common.BaseEntity;
+import br.ifsp.film_catalog.model.enums.RoleName;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "ROLES")
-public class Role {
+@Table(name = "roles")
+public class Role extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+    @Setter
     @Enumerated(EnumType.STRING)
-    @Column(name = "role_name")
+    @Column(nullable = false, unique = true, length = 20, name = "role_name")
     private RoleName roleName;
 
-    @ManyToMany(mappedBy = "roles")
-    private List<User> users;
-
-    // Construtores, getters e setters
-    public Role() {}
+    @ManyToMany(mappedBy = "roles", fetch = FetchType.EAGER)
+    private Set<User> users = new HashSet<>();
 
     public Role(RoleName roleName) {
         this.roleName = roleName;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public RoleName getRoleName() {
-        return roleName;
-    }
-
-    public void setRoleName(RoleName roleName) {
-        this.roleName = roleName;
-    }
-
-    public List<User> getUsers() {
-        return users;
-    }
-
-    public void setUsers(List<User> users) {
-        this.users = users;
     }
 }
 

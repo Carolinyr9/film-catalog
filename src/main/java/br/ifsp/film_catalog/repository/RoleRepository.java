@@ -1,7 +1,7 @@
 package br.ifsp.film_catalog.repository;
 
 import br.ifsp.film_catalog.model.Role;
-import br.ifsp.film_catalog.model.RoleName;
+import br.ifsp.film_catalog.model.enums.RoleName;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

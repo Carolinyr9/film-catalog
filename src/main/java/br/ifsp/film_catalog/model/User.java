@@ -1,30 +1,34 @@
 package br.ifsp.film_catalog.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
+import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
+import br.ifsp.film_catalog.model.common.BaseEntity;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "USERS")
-public class User {
+@Table(name = "users")
+public class User extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Setter
+    @Column(name = "name")
+    private String name;
 
-    @NotBlank
-    private String nome;
-
-    @NotBlank
+    @Setter
     @Column(unique = true)
     private String email;
 
+    @Setter
     @Column(name = "password")
     private String password;
 
+    @Setter
     @Column(unique = true)
     private String username;
 
@@ -36,62 +40,112 @@ public class User {
     )
     private Set<Role> roles = new HashSet<>();
 
-    public User() {
+    public void addRole(Role role) {
+        this.roles.add(role);
+        role.getUsers().add(this);
     }
 
-    public User(Long id, String nome, String email, String password, String username) {
-        this.id = id;
-        this.nome = nome;
-        this.email = email;
-        this.password = password;
-        this.username = username;
+    public void removeRole(Role role) {
+        this.roles.remove(role);
+        role.getUsers().remove(this);
     }
 
-    public Long getId() {
-        return id;
+    @OneToMany(
+        mappedBy = "user",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private Set<Watchlist> watchlists = new HashSet<>();
+
+    public void addWatchlist(Watchlist watchlist) {
+        this.watchlists.add(watchlist);
+        watchlist.setUser(this); // Set the back-reference
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void removeWatchlist(Watchlist watchlist) {
+        this.watchlists.remove(watchlist);
+        watchlist.setUser(null); // Remove the back-reference
     }
 
-    public String getNome() {
-        return nome;
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<UserFavorite> favoriteMovies = new HashSet<>();
+
+    public void addFavorite(Movie movie) {
+        UserFavorite favorite = new UserFavorite(this, movie);
+        this.favoriteMovies.add(favorite);
+        movie.getFavoritedBy().add(favorite); // Keep both sides in sync
     }
 
-    public void setNome(String nome) {
-        this.nome = nome;
+    public void removeFavorite(Movie movie) {
+        // Create an iterator to safely remove while iterating
+        this.favoriteMovies.removeIf(favorite ->
+                favorite.getUser().equals(this) &&
+                favorite.getMovie().equals(movie)
+        );
+        movie.getFavoritedBy().removeIf(favorite ->
+                favorite.getUser().equals(this) &&
+                favorite.getMovie().equals(movie)
+        );
     }
 
-    public String getEmail() {
-        return email;
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<UserWatched> watchedMovies = new HashSet<>();
+
+    public void addWatched(Movie movie, LocalDateTime watchedAt) {
+        UserWatched watched = new UserWatched(this, movie, watchedAt);
+        this.watchedMovies.add(watched);
+        movie.getWatchedBy().add(watched);
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void removeWatched(Movie movie) {
+        this.watchedMovies.removeIf(watched ->
+                watched.getUser().equals(this) &&
+                watched.getMovie().equals(movie)
+        );
+        movie.getFavoritedBy().removeIf(watched ->
+                watched.getUser().equals(this) &&
+                watched.getMovie().equals(movie)
+        );
     }
 
-    public String getPassword() {
-        return password;
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<ContentFlag> flaggedContent = new HashSet<>();
+
+    public void addFlaggedContent(Review review, String flagReason) {
+        ContentFlag flag = new ContentFlag(this, review, flagReason);
+        this.flaggedContent.add(flag);
+        if (review.getFlags() != null) { // Defensive check
+            review.getFlags().add(flag);
+        }
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void removeFlaggedContent(Review review) {
+        // Iterate to find the specific flag by this user for this review
+        ContentFlag toRemove = null;
+        for (ContentFlag flag : this.flaggedContent) {
+            if (flag.getReview().equals(review) && flag.getUser().equals(this)) {
+                toRemove = flag;
+                break;
+            }
+        }
+        if (toRemove != null) {
+            this.flaggedContent.remove(toRemove);
+            if (review.getFlags() != null) { // Defensive check
+                review.getFlags().remove(toRemove);
+            }
+        }
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public Set<Role> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<Role> roles) {
-        this.roles = roles;
-    }
 }
