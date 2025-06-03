@@ -1,4 +1,4 @@
-package br.ifsp.film_catalog.watchlist;
+package br.ifsp.film_catalog.unitTests;
 
 import br.ifsp.film_catalog.dto.MovieResponseDTO;
 import br.ifsp.film_catalog.dto.WatchlistRequestDTO;

@@ -1,4 +1,4 @@
-package br.ifsp.film_catalog.genre;
+package br.ifsp.film_catalog.unitTests;
 
 import br.ifsp.film_catalog.dto.GenreRequestDTO;
 import br.ifsp.film_catalog.dto.GenreResponseDTO;
