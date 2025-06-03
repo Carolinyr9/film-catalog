@@ -156,7 +156,7 @@ public class MovieController {
         return ResponseEntity.ok(patchedMovie);
     }
 
-     @Operation(summary = "Excluir um filme", description = "Exclui um filme pelo seu ID. Requer perfil de ADMIN.")
+    @Operation(summary = "Excluir um filme", description = "Exclui um filme pelo seu ID. Requer perfil de ADMIN.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Filme excluído com sucesso"),
             @ApiResponse(responseCode = "404", description = "Filme não encontrado", 
