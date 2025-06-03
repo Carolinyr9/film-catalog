@@ -4,7 +4,6 @@ import br.ifsp.film_catalog.dto.ContentFlagRequestDTO;
 import br.ifsp.film_catalog.dto.ContentFlagResponseDTO;
 import br.ifsp.film_catalog.dto.ReviewRequestDTO;
 import br.ifsp.film_catalog.dto.ReviewResponseDTO;
-import br.ifsp.film_catalog.dto.UserResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
 import br.ifsp.film_catalog.exception.ErrorResponse;
 import br.ifsp.film_catalog.security.UserAuthenticated;
@@ -26,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -109,16 +109,16 @@ public class ReviewController {
             @ApiResponse(responseCode = "404", description = "Avaliação não encontrada")
     })
     @PutMapping("/reviews/{reviewId}")
-    // userId is passed from the authenticated principal by securityService.isReviewOwner
-    @PreAuthorize("@securityService.isReviewOwner(authentication, #reviewId)")
     public ResponseEntity<ReviewResponseDTO> updateReview(
             @PathVariable Long reviewId,
-            @Valid @RequestBody ReviewRequestDTO reviewRequestDTO,
-            @RequestAttribute("userIdFromPrincipal") Long userId // Injetado pelo SecurityService (ver abaixo)
-    ) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserAuthenticated userAuthenticated,
+            @Valid @RequestBody ReviewRequestDTO reviewRequestDTO) {
+
+        Long userId = userAuthenticated.getUser().getId();
         ReviewResponseDTO updatedReview = reviewService.updateReview(reviewId, userId, reviewRequestDTO);
         return ResponseEntity.ok(updatedReview);
     }
+
 
     @Operation(summary = "Deletar uma avaliação")
     @ApiResponses({
@@ -190,7 +190,7 @@ public class ReviewController {
     @GetMapping("/reviews/{userId}/userStatistics")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> getUserStatistics(
-            @PageableDefault(size = 10, sort = "reviewsCount") Pageable pageable, Long userId) {
+            @PageableDefault(size = 10, sort = "reviewsCount") Pageable pageable, @PathVariable Long userId) {
         String userStatistics = reviewService.getUserStatistics(pageable, userId);
         return ResponseEntity.ok(userStatistics);
     }
@@ -203,11 +203,11 @@ public class ReviewController {
     })
     @GetMapping("/reviews/{userId}/average-weighted")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List> getAverageWeighted(
-            @PageableDefault(size = 10, sort = "reviewsCount") Pageable pageable, Long userId) {
-        List reviewsStatistics = reviewService.getAverageWeighted(pageable, userId);
+    public ResponseEntity<List<Double>> getAverageWeighted(
+            @PageableDefault(size = 10, sort = "reviewsCount") Pageable pageable,
+            @PathVariable Long userId) {
+        List<Double> reviewsStatistics = reviewService.getAverageWeighted(pageable, userId);
         return ResponseEntity.ok(reviewsStatistics);
     }
 
-    
 }
