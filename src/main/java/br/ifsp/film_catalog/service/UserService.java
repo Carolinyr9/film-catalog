@@ -345,7 +345,7 @@ public class UserService {
             throw new IllegalArgumentException("Genres list cannot be null or empty.");
         }
 
-        List<Movie> recommendedMovies = movieRepository.findByGenresContaining(genres.get(0).getId(), pageable)
+        List<Movie> recommendedMovies = movieRepository.findByGenresContaining(genres.get(0), pageable)
                 .stream()
                 .filter(movie -> movie.getGenres().stream().anyMatch(genres::contains))
                 .collect(Collectors.toList());
