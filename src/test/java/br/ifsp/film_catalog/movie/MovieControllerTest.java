@@ -1,10 +1,12 @@
 package br.ifsp.film_catalog.movie;
 
+import br.ifsp.film_catalog.dto.GenreResponseDTO;
 import br.ifsp.film_catalog.dto.MoviePatchDTO;
 import br.ifsp.film_catalog.dto.MovieRequestDTO;
 import br.ifsp.film_catalog.dto.MovieResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
 import br.ifsp.film_catalog.model.Genre;
+import br.ifsp.film_catalog.model.enums.ContentRating;
 import br.ifsp.film_catalog.repository.GenreRepository;
 import br.ifsp.film_catalog.repository.MovieRepository;
 import br.ifsp.film_catalog.service.MovieService;
@@ -54,14 +56,15 @@ class MovieControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getAllMovies_shouldReturnPagedMovies() throws Exception {
         PagedResponse<MovieResponseDTO> pagedMovies = new PagedResponse<>(
                 List.of(exampleMovie), 
                 0,              
-                10,                  
-                1,            
-                1,                 
-                true               
+                10,            
+                1,              
+                1,             
+                true           
         );
 
         when(movieService.getAllMovies(any())).thenReturn(pagedMovies);
@@ -75,6 +78,7 @@ class MovieControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getMovieById_shouldReturnMovie_whenExists() throws Exception {
         when(movieService.getMovieById(10L)).thenReturn(exampleMovie);
 
@@ -87,6 +91,7 @@ class MovieControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getMoviesByTitle_shouldReturnPagedMovies() throws Exception {
         PagedResponse<MovieResponseDTO> pagedMovies = new PagedResponse<>(
                 List.of(exampleMovie), 
@@ -107,6 +112,7 @@ class MovieControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getMoviesByGenre_shouldReturnPagedMovies() throws Exception {
         PagedResponse<MovieResponseDTO> pagedMovies = new PagedResponse<>(
                 List.of(exampleMovie), 
@@ -127,6 +133,7 @@ class MovieControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getMoviesByReleaseYear_shouldReturnPagedMovies() throws Exception {
         PagedResponse<MovieResponseDTO> pagedMovies = new PagedResponse<>(
                 List.of(exampleMovie), 
@@ -153,14 +160,27 @@ class MovieControllerTest {
         movieRequest.setTitle("Novo Filme");
         movieRequest.setSynopsis("Descrição");
         movieRequest.setReleaseYear(2023);
+        movieRequest.setDuration(120);
+        movieRequest.setContentRating("A12");
+        Genre genre = new Genre();
+        genre.setId(1L);
+        genre.setName("Action");
+        movieRequest.setGenres(Set.of(genre));
 
-        MovieResponseDTO createdMovie = MovieResponseDTO.builder()
-            .id(20L)
-            .title("Novo Filme")
-            .synopsis("Descrição")
-            .releaseYear(2023)
-            .build();
+        GenreResponseDTO genreResponse = new GenreResponseDTO();
+        genreResponse.setId(1L);
+        genreResponse.setName("Action");
 
+        MovieResponseDTO createdMovie = new MovieResponseDTO();
+        createdMovie.setId(20L);
+        createdMovie.setTitle("Novo Filme");
+        createdMovie.setSynopsis("Descrição");
+        createdMovie.setReleaseYear(2023);
+        createdMovie.setDuration(120);
+        createdMovie.setContentRating(ContentRating.A12);
+        createdMovie.setGenres(Set.of(genreResponse)); 
+
+        // Mock e chamada
         when(movieService.createMovie(any(MovieRequestDTO.class))).thenReturn(createdMovie);
 
         mockMvc.perform(post("/api/movies")
@@ -173,6 +193,8 @@ class MovieControllerTest {
         verify(movieService).createMovie(any(MovieRequestDTO.class));
     }
 
+
+
     @Test
     @WithMockUser(roles = "ADMIN")
     void updateMovie_shouldReturnUpdatedMovie_whenValid() throws Exception {
@@ -180,12 +202,21 @@ class MovieControllerTest {
         movieRequest.setTitle("Filme Atualizado");
         movieRequest.setSynopsis("Nova descrição");
         movieRequest.setReleaseYear(2022);
+        movieRequest.setDuration(120);                 // <-- obrigatório
+        movieRequest.setContentRating("A12");          // <-- obrigatório e deve respeitar regex
+        Genre genre = new Genre();
+        genre.setId(1L);
+        genre.setName("Action");
+        movieRequest.setGenres(Set.of(genre));
 
         MovieResponseDTO updatedMovie = MovieResponseDTO.builder()
             .id(10L)
             .title("Filme Atualizado")
             .synopsis("Nova descrição")
             .releaseYear(2022)
+            .duration(120)
+            .contentRating(ContentRating.A12)
+            .genres(Set.of(new GenreResponseDTO(1L, "Action")))
             .build();
 
         when(movieService.updateMovie(eq(10L), any(MovieRequestDTO.class))).thenReturn(updatedMovie);
@@ -198,6 +229,7 @@ class MovieControllerTest {
 
         verify(movieService).updateMovie(eq(10L), any(MovieRequestDTO.class));
     }
+
 
     @Test
         @WithMockUser(roles = "ADMIN")

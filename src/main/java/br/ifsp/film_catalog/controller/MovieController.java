@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @Tag(name = "Filmes", description = "API para gerenciamento de filmes no catálogo")
 @Validated
@@ -115,7 +116,7 @@ public class MovieController {
             @ApiResponse(responseCode = "403", description = "Acesso negado (Requer perfil de ADMIN)", 
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<MovieResponseDTO> createMovie(@Valid @RequestBody MovieRequestDTO movieRequestDTO) {
         MovieResponseDTO createdMovie = movieService.createMovie(movieRequestDTO);
