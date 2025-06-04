@@ -32,7 +32,7 @@ public class Movie extends BaseEntity {
     @Setter
     private ContentRating contentRating; // Classificação indicativa
 
-    @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.MERGE })
     @JoinTable(
             name = "movie_genres", // Name of the new join table
             joinColumns = @JoinColumn(name = "movie_id"), // Column in join table for this entity's ID

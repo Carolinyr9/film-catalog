@@ -6,10 +6,11 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.util.Set;
 import java.util.HashSet;
-
+import lombok.Builder;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class MovieResponseDTO {
     private Long id;
     private String title;

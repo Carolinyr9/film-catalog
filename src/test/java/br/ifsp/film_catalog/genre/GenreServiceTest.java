@@ -60,7 +60,7 @@ class GenreServiceTest {
     @BeforeEach
     void setUp() {
         genre1 = new Genre("Action");
-        genre1.setId(1L); // Assuming BaseEntity or direct ID setting
+        genre1.setId(1L); 
 
         genreResponseDTO1 = new GenreResponseDTO(1L, "Action");
         genreRequestDTO1 = new GenreRequestDTO("Action");

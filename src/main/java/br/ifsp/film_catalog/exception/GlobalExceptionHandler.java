@@ -117,7 +117,8 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata exceções genéricas que não foram capturadas pelos handlers anteriores.
-     */
+     
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception exception) {
@@ -128,5 +129,6 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+    */
 
 }

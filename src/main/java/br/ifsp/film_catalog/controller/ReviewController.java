@@ -4,7 +4,6 @@ import br.ifsp.film_catalog.dto.ContentFlagRequestDTO;
 import br.ifsp.film_catalog.dto.ContentFlagResponseDTO;
 import br.ifsp.film_catalog.dto.ReviewRequestDTO;
 import br.ifsp.film_catalog.dto.ReviewResponseDTO;
-import br.ifsp.film_catalog.dto.UserResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
 import br.ifsp.film_catalog.exception.ErrorResponse;
 import br.ifsp.film_catalog.security.UserAuthenticated;

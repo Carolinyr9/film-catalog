@@ -167,8 +167,8 @@ class MovieServiceTest {
         verify(movieRepository, never()).findByGenresContaining(any(Long.class), any(Pageable.class));
     }
 
-
-    /*@Test
+/* 
+    @Test
     void createMovie_whenTitleIsUnique_shouldCreateAndReturnMovie() {
         Movie movieToSave = new Movie(); // Entity before save (no ID)
         // Simulate mapping from DTO to this new entity
@@ -197,7 +197,8 @@ class MovieServiceTest {
         assertThat(created.getTitle()).isEqualTo("Inception");
         assertThat(created.getGenres()).hasSize(1);
         verify(movieRepository).save(movieToSave);
-    }*/
+    }
+        */
 
     @Test
     void createMovie_whenTitleIsNotUnique_shouldThrowIllegalArgumentException() {
@@ -206,7 +207,11 @@ class MovieServiceTest {
         verify(movieRepository, never()).save(any(Movie.class));
     }
 
-    /*@Test
+    /**
+     * Test for updating a movie when the title is unique.
+     * This test ensures that the service correctly updates the movie and returns the updated DTO.
+     
+    @Test
     void patchMovie_whenMovieExists_shouldUpdateAndReturnMovie() {
         MoviePatchDTO patchDTO = new MoviePatchDTO();
         patchDTO.setTitle(Optional.of("Inception Remastered"));
@@ -233,11 +238,13 @@ class MovieServiceTest {
         when(genreRepository.findById(genreAction.getId())).thenReturn(Optional.of(genreAction));
         when(movieRepository.save(any(Movie.class))).thenAnswer(invocation -> {
             Movie m = invocation.getArgument(0);
+            m.getGenres().clear();
             m.addGenre(genreAction);
             return m;
         });
-        when(modelMapper.map(any(Movie.class), eq(MovieResponseDTO.class))).thenReturn(expectedResponseDTO);
+        doReturn(expectedResponseDTO).when(modelMapper).map(any(Movie.class), eq(MovieResponseDTO.class));
 
+        // Ensure patch logic is consistent with service and test setup
         MovieResponseDTO patched = movieService.patchMovie(1L, patchDTO);
 
         assertThat(patched).isNotNull();
@@ -247,8 +254,8 @@ class MovieServiceTest {
 
         verify(movieRepository).findById(1L);
         verify(movieRepository).save(any(Movie.class));
-    }*/
-
+    }
+*/
 
     @Test
     void deleteMovie_whenMovieExists_shouldDeleteMovie() {
