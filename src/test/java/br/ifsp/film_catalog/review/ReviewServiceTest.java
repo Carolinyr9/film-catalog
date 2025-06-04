@@ -3,6 +3,8 @@ package br.ifsp.film_catalog.review;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.context.ActiveProfiles;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -42,6 +44,7 @@ import br.ifsp.film_catalog.repository.UserWatchedRepository;
 import br.ifsp.film_catalog.service.ReviewService;
 
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test")
 public class ReviewServiceTest {
 
     @Mock

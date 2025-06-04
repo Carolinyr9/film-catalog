@@ -18,11 +18,13 @@ import org.mockito.*;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.*;
 
 import br.ifsp.film_catalog.exception.ResourceNotFoundException;
 
+@ActiveProfiles("test")
 class UserServiceTest {
 
     @Mock

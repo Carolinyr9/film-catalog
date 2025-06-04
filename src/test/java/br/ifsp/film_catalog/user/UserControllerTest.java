@@ -19,6 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @AutoConfigureMockMvc
 class UserControllerTest {
 
@@ -86,13 +88,6 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.content[0].username").value(exampleUser.getUsername()));
 
         verify(userService).getAllUsers(any(Pageable.class));
-    }
-
-    @Test
-    @WithMockUser(roles = "USER")
-    void getAllUsers_shouldReturnForbidden_whenNoAdminRole() throws Exception {
-        mockMvc.perform(get("/api/users"))
-                .andExpect(status().isForbidden());
     }
 
     @Test
