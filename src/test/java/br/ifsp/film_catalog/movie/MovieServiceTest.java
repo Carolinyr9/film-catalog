@@ -30,8 +30,11 @@ import org.springframework.data.domain.Pageable;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -167,38 +170,82 @@ class MovieServiceTest {
         verify(movieRepository, never()).findByGenresContaining(any(Long.class), any(Pageable.class));
     }
 
-/* 
-    @Test
-    void createMovie_whenTitleIsUnique_shouldCreateAndReturnMovie() {
-        Movie movieToSave = new Movie(); // Entity before save (no ID)
-        // Simulate mapping from DTO to this new entity
-        when(modelMapper.map(movieRequestDTO1, Movie.class)).thenReturn(movieToSave);
-        // Simulate what happens after mapping and before saving
-        movieToSave.setTitle(movieRequestDTO1.getTitle());
-        // ... other fields from movieRequestDTO1
-        
-        when(genreRepository.findById(1L)).thenReturn(Optional.of(genreAction)); // For genreIds
-        
-        // Simulate saving the entity (it gets an ID)
-        Movie savedMovie = new Movie(); // Entity after save (with ID)
-        savedMovie.setId(1L);
-        savedMovie.setTitle(movieRequestDTO1.getTitle());
-        // ... other fields ...
-        savedMovie.addGenre(genreAction); // Simulate genre linking in service or entity
+@Test
+    void createMovie_shouldReturnResponseDTO_whenValidRequest() {
+        Genre genre = new Genre();
+        genre.setId(1L);
+        genre.setName("Action");
 
-        when(movieRepository.findByTitle(movieRequestDTO1.getTitle())).thenReturn(Optional.empty());
-        when(movieRepository.save(movieToSave)).thenReturn(savedMovie); // Return the entity with ID
-        when(modelMapper.map(savedMovie, MovieResponseDTO.class)).thenReturn(movieResponseDTO1);
+        MovieRequestDTO requestDTO = new MovieRequestDTO();
+        requestDTO.setTitle("Inception");
+        requestDTO.setGenres(Set.of(genre));
 
+        Movie movie = new Movie();
+        movie.setId(1L);
+        movie.setTitle("Inception");
 
-        MovieResponseDTO created = movieService.createMovie(movieRequestDTO1);
+        when(movieRepository.findByTitle("Inception")).thenReturn(Optional.empty());
+        when(genreRepository.findByNameIgnoreCase("Action")).thenReturn(Optional.of(genre));
+        when(movieRepository.save(any(Movie.class))).thenAnswer(invocation -> {
+            Movie m = invocation.getArgument(0);
+            m.setId(1L);
+            return m;
+        });
 
-        assertThat(created).isNotNull();
-        assertThat(created.getTitle()).isEqualTo("Inception");
-        assertThat(created.getGenres()).hasSize(1);
-        verify(movieRepository).save(movieToSave);
+        MovieResponseDTO responseDTO = movieService.createMovie(requestDTO);
+
+        assertNotNull(responseDTO);
+        assertEquals("Inception", responseDTO.getTitle());
+        verify(movieRepository).save(any(Movie.class));
     }
-        */
+
+    @Test
+    void createMovie_shouldThrowException_whenTitleAlreadyExists() {
+        MovieRequestDTO requestDTO = new MovieRequestDTO();
+        requestDTO.setTitle("Inception");
+
+        when(movieRepository.findByTitle("Inception")).thenReturn(Optional.of(new Movie()));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> movieService.createMovie(requestDTO));
+
+        assertEquals("Movie with title 'Inception' already exists.", exception.getMessage());
+    }
+
+    @Test
+    void patchMovie_shouldReturnUpdatedMovie_whenValidId() {
+        Long movieId = 1L;
+
+        Movie existingMovie = new Movie();
+        existingMovie.setId(movieId);
+        existingMovie.setTitle("Old Title");
+
+        MoviePatchDTO patchDTO = new MoviePatchDTO();
+        patchDTO.setTitle("New Title");
+
+        when(movieRepository.findById(movieId)).thenReturn(Optional.of(existingMovie));
+        when(movieRepository.save(any(Movie.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MovieResponseDTO result = movieService.patchMovie(movieId, patchDTO);
+
+        assertEquals("New Title", result.getTitle());
+        verify(movieRepository).save(existingMovie);
+    }
+
+    @Test
+    void patchMovie_shouldThrowException_whenMovieNotFound() {
+        Long movieId = 99L;
+        MoviePatchDTO patchDTO = new MoviePatchDTO();
+        patchDTO.setTitle("New Title");
+
+        when(movieRepository.findById(movieId)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> movieService.patchMovie(movieId, patchDTO));
+
+        assertEquals("Movie id not found: 99", exception.getMessage());
+    }
+
 
     @Test
     void createMovie_whenTitleIsNotUnique_shouldThrowIllegalArgumentException() {
@@ -207,55 +254,6 @@ class MovieServiceTest {
         verify(movieRepository, never()).save(any(Movie.class));
     }
 
-    /**
-     * Test for updating a movie when the title is unique.
-     * This test ensures that the service correctly updates the movie and returns the updated DTO.
-     
-    @Test
-    void patchMovie_whenMovieExists_shouldUpdateAndReturnMovie() {
-        MoviePatchDTO patchDTO = new MoviePatchDTO();
-        patchDTO.setTitle(Optional.of("Inception Remastered"));
-        patchDTO.setSynopsis(Optional.empty()); // Not changing synopsis
-        patchDTO.setReleaseYear(Optional.empty());
-        patchDTO.setDuration(Optional.empty());
-        patchDTO.setContentRating(Optional.empty());
-        patchDTO.setGenreIds(Optional.of(Set.of(genreAction.getId())));
-
-        Movie movieFromDb = new Movie(); // Simulate movie fetched from DB
-        movieFromDb.setId(1L);
-        movieFromDb.setTitle("Inception");
-        movieFromDb.setSynopsis("Old Synopsis");
-        movieFromDb.setContentRating(ContentRating.A10);
-
-        MovieResponseDTO expectedResponseDTO = new MovieResponseDTO();
-        expectedResponseDTO.setId(1L);
-        expectedResponseDTO.setTitle("Inception Remastered");
-        expectedResponseDTO.setSynopsis("Old Synopsis");
-        expectedResponseDTO.setContentRating(ContentRating.A10);
-        expectedResponseDTO.setGenres(Set.of(new br.ifsp.film_catalog.dto.GenreResponseDTO(genreAction.getId(), genreAction.getName())));
-
-        when(movieRepository.findById(1L)).thenReturn(Optional.of(movieFromDb));
-        when(genreRepository.findById(genreAction.getId())).thenReturn(Optional.of(genreAction));
-        when(movieRepository.save(any(Movie.class))).thenAnswer(invocation -> {
-            Movie m = invocation.getArgument(0);
-            m.getGenres().clear();
-            m.addGenre(genreAction);
-            return m;
-        });
-        doReturn(expectedResponseDTO).when(modelMapper).map(any(Movie.class), eq(MovieResponseDTO.class));
-
-        // Ensure patch logic is consistent with service and test setup
-        MovieResponseDTO patched = movieService.patchMovie(1L, patchDTO);
-
-        assertThat(patched).isNotNull();
-        assertThat(patched.getTitle()).isEqualTo("Inception Remastered");
-        assertThat(patched.getSynopsis()).isEqualTo("Old Synopsis"); // Should not have changed
-        assertThat(patched.getGenres().iterator().next().getName()).isEqualTo("Action");
-
-        verify(movieRepository).findById(1L);
-        verify(movieRepository).save(any(Movie.class));
-    }
-*/
 
     @Test
     void deleteMovie_whenMovieExists_shouldDeleteMovie() {

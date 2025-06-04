@@ -8,11 +8,14 @@ import br.ifsp.film_catalog.dto.page.PagedResponse;
 import br.ifsp.film_catalog.exception.ResourceNotFoundException;
 import br.ifsp.film_catalog.mapper.PagedResponseMapper;
 import br.ifsp.film_catalog.model.Movie;
+import br.ifsp.film_catalog.model.enums.ContentRating;
 import br.ifsp.film_catalog.model.Genre;
 import br.ifsp.film_catalog.repository.MovieRepository;
 import br.ifsp.film_catalog.repository.ReviewRepository;
 import br.ifsp.film_catalog.repository.GenreRepository;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
@@ -84,7 +87,6 @@ public class MovieService {
              throw new IllegalArgumentException("Movie with title '" + movieRequestDTO.getTitle() + "' already exists.");
         }
         Movie movie = modelMapper.map(movieRequestDTO, Movie.class);
-        // Add DTO genre to movie
         for (Genre genre : movieRequestDTO.getGenres()) {
             Genre existingGenre = genreRepository.findByNameIgnoreCase(genre.getName())
                     .orElseThrow(() -> new ResourceNotFoundException("Genre not found: " + genre.getName()));
@@ -115,11 +117,38 @@ public class MovieService {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie id not found: " + id));
 
-        modelMapper.map(patchDTO, movie);
-        movie.setId(id);
+        if (patchDTO.getTitle() != null) {
+            movie.setTitle(patchDTO.getTitle());
+        }
+        if (patchDTO.getSynopsis() != null) {
+            movie.setSynopsis(patchDTO.getSynopsis());
+        }
+        if (patchDTO.getReleaseYear() != null) {
+            movie.setReleaseYear(patchDTO.getReleaseYear());
+        }
+        if (patchDTO.getDuration() != null) {
+            movie.setDuration(patchDTO.getDuration());
+        }
+        if (patchDTO.getContentRating() != null) {
+            try {
+                ContentRating rating = ContentRating.valueOf(patchDTO.getContentRating().toUpperCase());
+                movie.setContentRating(rating);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid content rating value: " + patchDTO.getContentRating());
+            }
+        }
+
+        if (patchDTO.getGenreIds() != null) {
+            // Aqui você vai precisar buscar os gêneros pelo IDs e setar no filme
+            List<Genre> genres = genreRepository.findAllById(patchDTO.getGenreIds());
+            movie.getGenres().clear();
+            movie.getGenres().addAll(genres);
+        }
+
         movie = movieRepository.save(movie);
         return modelMapper.map(movie, MovieResponseDTO.class);
     }
+
 
     @Transactional
     public void deleteMovie(Long id) {

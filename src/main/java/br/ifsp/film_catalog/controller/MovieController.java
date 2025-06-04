@@ -177,7 +177,7 @@ public class MovieController {
             @ApiResponse(responseCode = "403", description = "Acesso negado (se a segurança estiver habilitada)", 
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @GetMapping("/movies/highlighted")
+    @GetMapping("/highlighted")
     public PagedResponse<MovieResponseDTO> getHighlightedMovies(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {

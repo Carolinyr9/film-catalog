@@ -15,19 +15,19 @@ import java.util.Set;
 @AllArgsConstructor
 public class MoviePatchDTO {
     @Size(max = 255, message = "Movie title cannot exceed 255 characters.")
-    private Optional<String> title = Optional.empty();
+    private String title;
 
     @Size(max = 255, message = "Synopsis cannot exceed 255 characters.")
-    private Optional<String> synopsis = Optional.empty();
+    private String synopsis;
 
     @Positive(message = "Release year must be a positive number.")
-    private Optional<Integer> releaseYear = Optional.empty();
+    private Integer releaseYear;
 
     @Positive(message = "Duration must be a positive number.")
-    private Optional<Integer> duration = Optional.empty();
+    private Integer duration;
 
     @Pattern(regexp = "AL|A10|A12|A14|A16|A18|OTHER", flags = Pattern.Flag.CASE_INSENSITIVE, message = "Invalid content rating value. Must be one of: AL, A10, A12, A14, A16, A18, OTHER.")
-    private Optional<String> contentRating = Optional.empty();
+    private String contentRating;
 
-    private Optional<Set<Long>> genreIds = Optional.empty();
+    private Set<Long> genreIds;
 }
