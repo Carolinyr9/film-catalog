@@ -1,6 +1,7 @@
 package br.ifsp.film_catalog.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +10,7 @@ import java.time.LocalDateTime; // Assuming Review entity will have created/upda
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ReviewResponseDTO {
     private Long id;
     private String content;

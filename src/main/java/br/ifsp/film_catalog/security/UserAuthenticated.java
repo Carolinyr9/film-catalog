@@ -1,12 +1,13 @@
 package br.ifsp.film_catalog.security;
 
+import java.security.Principal;
 import java.util.Collection;
 
 import br.ifsp.film_catalog.model.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-public class UserAuthenticated implements UserDetails {
+public class UserAuthenticated implements UserDetails, Principal {
 
     private final User user;
 
@@ -53,6 +54,11 @@ public class UserAuthenticated implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    @Override
+    public String getName() {
+        return user.getUsername();
     }
 
 }

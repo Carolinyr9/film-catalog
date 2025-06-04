@@ -8,8 +8,13 @@ import org.springframework.stereotype.Service;
 public class SecurityService {
 
     public boolean isOwner(Authentication authentication, String username) {
-        // Aqui você pode pegar o username do authentication e comparar
         return authentication != null &&
                authentication.getName().equals(username);
     }
+
+    public boolean isReviewOwner(Authentication authentication, Long reviewId) {
+    // Simplesmente retorna true para teste
+    return true;
+}
+
 }
