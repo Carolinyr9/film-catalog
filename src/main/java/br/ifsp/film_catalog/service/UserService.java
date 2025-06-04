@@ -168,54 +168,61 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
         // Name
-        userPatchDTO.getName().ifPresent(name -> {
+        if (userPatchDTO.getName() != null) {
+            String name = userPatchDTO.getName();
             if (name.isBlank()) throw new IllegalArgumentException("Name cannot be blank if provided.");
             user.setName(name);
-        });
+        }
 
         // Email
-        userPatchDTO.getEmail().ifPresent(email -> {
+        if (userPatchDTO.getEmail() != null) {
+            String email = userPatchDTO.getEmail();
             if (email.isBlank()) throw new IllegalArgumentException("Email cannot be blank if provided.");
-            userRepository.findByEmailIgnoreCase(email).ifPresent(existingUser -> {
-                if (!existingUser.getId().equals(id)) {
+
+            userRepository.findByEmailIgnoreCase(email).ifPresent(existingUserByEmail -> {
+                if (!existingUserByEmail.getId().equals(id)) {
                     throw new IllegalArgumentException("Email '" + email + "' already exists.");
                 }
             });
             user.setEmail(email);
-        });
+        }
 
         // Username
-        userPatchDTO.getUsername().ifPresent(username -> {
+        if (userPatchDTO.getUsername() != null) {
+            String username = userPatchDTO.getUsername();
             if (username.isBlank()) throw new IllegalArgumentException("Username cannot be blank if provided.");
-            userRepository.findByUsername(username).ifPresent(existingUser -> {
-                if (!existingUser.getId().equals(id)) {
+
+            userRepository.findByUsername(username).ifPresent(existingUserByUsername -> {
+                if (!existingUserByUsername.getId().equals(id)) {
                     throw new IllegalArgumentException("Username '" + username + "' already exists.");
                 }
             });
             user.setUsername(username);
-        });
+        }
 
         // Password
-        userPatchDTO.getPassword().ifPresent(password -> {
+        if (userPatchDTO.getPassword() != null) {
+            String password = userPatchDTO.getPassword();
             if (password.isBlank()) throw new IllegalArgumentException("Password cannot be blank if provided.");
-            // Add password complexity validation here if needed, or rely on UserRequestDTO's for full updates
             user.setPassword(passwordEncoder.encode(password));
-        });
+        }
 
         // Roles
-        userPatchDTO.getRoleIds().ifPresent(roleIds -> {
-            Set<Role> newRoles = roleIds.stream()
+        if (userPatchDTO.getRoleIds() != null) {
+            Set<Role> newRoles = userPatchDTO.getRoleIds().stream()
                     .map(roleId -> roleRepository.findById(roleId)
                             .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId)))
                     .collect(Collectors.toSet());
+            user.getRoles().clear();  // Limpa roles atuais antes
             for (Role role : newRoles) {
                 user.addRole(role);
             }
-        });
+        }
 
         User patchedUser = userRepository.save(user);
         return modelMapper.map(patchedUser, UserResponseDTO.class);
     }
+
 
     @Transactional
     public void deleteUser(Long id) {

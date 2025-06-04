@@ -146,10 +146,13 @@ public class UserController {
     })
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #id)")
-    public ResponseEntity<UserResponseDTO> patchUser(@PathVariable Long id, @Valid @RequestBody UserPatchDTO userPatchDTO) {
-        UserResponseDTO patchedUser = userService.patchUser(id, userPatchDTO);
-        return ResponseEntity.ok(patchedUser);
+    public ResponseEntity<UserResponseDTO> patchUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UserPatchDTO userPatchDTO) {
+        UserResponseDTO updatedUser = userService.patchUser(id, userPatchDTO);
+        return ResponseEntity.ok(updatedUser);
     }
+
 
     @Operation(summary = "Excluir um usuário", description = "Exclui um usuário pelo seu ID.")
     @ApiResponses(value = {
