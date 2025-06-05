@@ -2,6 +2,7 @@ package br.ifsp.film_catalog.review;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import br.ifsp.film_catalog.config.CustomUserDetails;
 import br.ifsp.film_catalog.config.SecurityService;
 import br.ifsp.film_catalog.controller.ReviewController;
 import br.ifsp.film_catalog.dto.ContentFlagRequestDTO;
@@ -13,7 +14,6 @@ import br.ifsp.film_catalog.model.User;
 import br.ifsp.film_catalog.security.UserAuthenticated;
 import br.ifsp.film_catalog.service.ContentFlagService;
 import br.ifsp.film_catalog.service.ReviewService;
-import br.ifsp.film_catalog.user.CustomUserDetails;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;

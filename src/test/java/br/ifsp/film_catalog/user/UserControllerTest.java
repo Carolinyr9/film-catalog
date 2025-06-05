@@ -1,5 +1,6 @@
 package br.ifsp.film_catalog.user;
 
+import br.ifsp.film_catalog.config.CustomUserDetails;
 import br.ifsp.film_catalog.config.SecurityService;
 import br.ifsp.film_catalog.controller.UserController;
 import br.ifsp.film_catalog.dto.*;

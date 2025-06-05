@@ -1,5 +1,6 @@
 package br.ifsp.film_catalog.controller;
 
+import br.ifsp.film_catalog.config.CustomUserDetails;
 import br.ifsp.film_catalog.dto.ContentFlagRequestDTO;
 import br.ifsp.film_catalog.dto.ContentFlagResponseDTO;
 import br.ifsp.film_catalog.dto.ReviewRequestDTO;
@@ -12,6 +13,7 @@ import br.ifsp.film_catalog.service.ContentFlagService;
 import br.ifsp.film_catalog.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -108,17 +110,23 @@ public class ReviewController {
             @ApiResponse(responseCode = "403", description = "Acesso negado (usuário não é o proprietário da avaliação)"),
             @ApiResponse(responseCode = "404", description = "Avaliação não encontrada")
     })
-    @PutMapping("/reviews/{reviewId}")
-    // userId is passed from the authenticated principal by securityService.isReviewOwner
     @PreAuthorize("@securityService.isReviewOwner(authentication, #reviewId)")
+    @PutMapping("/reviews/{reviewId}")
     public ResponseEntity<ReviewResponseDTO> updateReview(
             @PathVariable Long reviewId,
             @Valid @RequestBody ReviewRequestDTO reviewRequestDTO,
-            @RequestAttribute("userIdFromPrincipal") Long userId // Injetado pelo SecurityService (ver abaixo)
+            Authentication authentication
     ) {
+        Long userId = extractUserIdFromAuthentication(authentication);
         ReviewResponseDTO updatedReview = reviewService.updateReview(reviewId, userId, reviewRequestDTO);
         return ResponseEntity.ok(updatedReview);
     }
+
+    private Long extractUserIdFromAuthentication(Authentication authentication) {
+        UserAuthenticated userAuthenticated = (UserAuthenticated) authentication.getPrincipal();
+        return userAuthenticated.getUser().getId();  
+    }
+
 
     @Operation(summary = "Deletar uma avaliação")
     @ApiResponses({

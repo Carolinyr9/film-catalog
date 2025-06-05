@@ -1,4 +1,4 @@
-package br.ifsp.film_catalog.user;
+package br.ifsp.film_catalog.config;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
