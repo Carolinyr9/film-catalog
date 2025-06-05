@@ -51,7 +51,6 @@ public class UserController {
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PagedResponse<UserResponseDTO>> getAllUsers(
             @PageableDefault(size = 10, sort = "name") Pageable pageable) {
         PagedResponse<UserResponseDTO> users = userService.getAllUsers(pageable);
