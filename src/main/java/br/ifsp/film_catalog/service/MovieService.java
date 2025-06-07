@@ -156,6 +156,7 @@ public class MovieService {
             throw new ResourceNotFoundException("Movie id not found: " + id);
         }
         // Add checks here if movie deletion has other constraints (e.g., part of watchlists, reviews)
+
         movieRepository.deleteById(id);
     }
 
@@ -165,13 +166,24 @@ public class MovieService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "generalScore"));
         Page<Movie> topMovies = reviewRepository.findTopRatedMovies(pageable);
 
+        if (topMovies.isEmpty()) {
+            pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "id"));
+            topMovies = movieRepository.findAll(pageable);
+        }
+
         List<MovieResponseDTO> movieDTOs = topMovies.getContent().stream()
             .map(movie -> modelMapper.map(movie, MovieResponseDTO.class))
             .toList();
 
-        return new PagedResponse<>(movieDTOs, topMovies.getNumber(),
-                topMovies.getSize(), topMovies.getTotalElements(),
-                topMovies.getTotalPages(), topMovies.isLast());
+        return new PagedResponse<>(
+            movieDTOs,
+            topMovies.getNumber(),
+            topMovies.getSize(),
+            topMovies.getTotalElements(),
+            topMovies.getTotalPages(),
+            topMovies.isLast()
+        );
     }
+
 
 }

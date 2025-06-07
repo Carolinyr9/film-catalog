@@ -1,8 +1,6 @@
 package br.ifsp.film_catalog.service;
 
-import br.ifsp.film_catalog.dto.ContentFlagRequestDTO;
-import br.ifsp.film_catalog.dto.ContentFlagResponseDTO;
-import br.ifsp.film_catalog.dto.FlaggedReviewResponseDTO;
+import br.ifsp.film_catalog.dto.*;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
 import br.ifsp.film_catalog.exception.InvalidReviewStateException;
 import br.ifsp.film_catalog.exception.ResourceNotFoundException;
@@ -21,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,11 +29,11 @@ public class ContentFlagService {
     private final ContentFlagRepository contentFlagRepository;
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
-    private final ReviewService reviewService; // To use convertToResponseDTO and toggleHide
+    private final ReviewService reviewService;
     private final ModelMapper modelMapper;
     private final PagedResponseMapper pagedResponseMapper;
 
-    @Value("${app.reviews.flags.auto-hide-threshold:10}") // Default to 10 if not set in properties
+    @Value("${app.reviews.flags.auto-hide-threshold:10}")
     private int autoHideThreshold;
 
     public ContentFlagService(ContentFlagRepository contentFlagRepository,
@@ -46,7 +45,7 @@ public class ContentFlagService {
         this.contentFlagRepository = contentFlagRepository;
         this.reviewRepository = reviewRepository;
         this.userRepository = userRepository;
-        this.reviewService = reviewService; // Inject ReviewService
+        this.reviewService = reviewService;
         this.modelMapper = modelMapper;
         this.pagedResponseMapper = pagedResponseMapper;
     }
@@ -55,6 +54,7 @@ public class ContentFlagService {
     public ContentFlagResponseDTO flagReview(Long reviewId, Long reporterUserId, ContentFlagRequestDTO requestDTO) {
         User reporter = userRepository.findById(reporterUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reporter User not found with id: " + reporterUserId));
+
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
 
@@ -62,7 +62,6 @@ public class ContentFlagService {
             throw new InvalidReviewStateException("User has already flagged this review.");
         }
 
-        // Check if user is trying to flag their own review
         if (review.getUserWatched() != null && review.getUserWatched().getUser().getId().equals(reporterUserId)) {
             throw new InvalidReviewStateException("Users cannot flag their own reviews.");
         }
@@ -70,33 +69,66 @@ public class ContentFlagService {
         ContentFlag contentFlag = new ContentFlag(reporter, review, requestDTO.getFlagReason());
         ContentFlag savedFlag = contentFlagRepository.save(contentFlag);
 
-        // Check if the review should be auto-hidden
-        long currentFlags = review.getFlags().size(); // Hibernate manages this collection, so size is accurate after save
+        long currentFlags = review.getFlags().size();
         if (currentFlags >= autoHideThreshold && !review.isHidden()) {
-            reviewService.toggleHideReview(reviewId, true); // Use ReviewService to hide
+            reviewService.toggleHideReview(reviewId, true);
         }
 
-        return modelMapper.map(savedFlag, ContentFlagResponseDTO.class);
+        return ContentFlagResponseDTO.builder()
+                .reviewId(review.getId())
+                .reporterUserId(reporter.getId())
+                .reporterUsername(reporter.getUsername())
+                .flagReason(savedFlag.getFlagReason())
+                .createdAt(LocalDateTime.now().atZone(java.time.ZoneId.systemDefault()).toInstant())
+                .updatedAt(LocalDateTime.now().atZone(java.time.ZoneId.systemDefault()).toInstant())
+                .build();
     }
-    
+
     @Transactional(readOnly = true)
     public PagedResponse<FlaggedReviewResponseDTO> getHeavilyFlaggedReviews(int minFlags, Pageable pageable) {
         List<Review> flaggedReviews = reviewRepository.findReviewsWithMinimumFlagsOrderByFlagsDesc(minFlags);
-        
+
         if (flaggedReviews.isEmpty()) {
-            return pagedResponseMapper.toPagedResponse(null, FlaggedReviewResponseDTO.class);
+            Page<FlaggedReviewResponseDTO> emptyPage = Page.empty(pageable);
+            return pagedResponseMapper.toPagedResponse(emptyPage, FlaggedReviewResponseDTO.class);
         }
 
         List<FlaggedReviewResponseDTO> flaggedReviewDTOs = flaggedReviews.stream()
-                .map(review -> {
-                    FlaggedReviewResponseDTO dto = modelMapper.map(review, FlaggedReviewResponseDTO.class);
-                    dto.setFlagCount((long) review.getFlags().size());
-                    return dto;
-                })
+                .map(review -> FlaggedReviewResponseDTO.builder()
+                        .review(mapToReviewResponseDTO(review))
+                        .flagCount((long) review.getFlags().size())
+                        .build())
                 .collect(Collectors.toList());
 
-        Page<FlaggedReviewResponseDTO> flaggedReviewsPage = new PageImpl<>(flaggedReviewDTOs, pageable, flaggedReviewDTOs.size());
+        Page<FlaggedReviewResponseDTO> page = new PageImpl<>(flaggedReviewDTOs, pageable, flaggedReviewDTOs.size());
 
-        return pagedResponseMapper.toPagedResponse(flaggedReviewsPage, FlaggedReviewResponseDTO.class);
+        return pagedResponseMapper.toPagedResponse(page, FlaggedReviewResponseDTO.class);
     }
+
+
+    private ReviewResponseDTO mapToReviewResponseDTO(Review review) {
+        ReviewResponseDTO dto = modelMapper.map(review, ReviewResponseDTO.class);
+
+        if (review.getUserWatched() != null && review.getUserWatched().getUser() != null) {
+            dto.setUsername(review.getUserWatched().getUser().getUsername());
+            dto.setUserId(review.getUserWatched().getUser().getId());
+        }
+
+        if (review.getUserWatched() != null) {
+            dto.setMovieId(review.getUserWatched().getMovie().getId());
+            dto.setMovieTitle(review.getUserWatched().getMovie().getTitle());
+        }
+
+        // createdAt e updatedAt, se não vierem pelo modelMapper, copie manualmente:
+        if (review.getCreatedAt() != null) {
+            dto.setCreatedAt(LocalDateTime.now());
+        }
+        if (review.getUpdatedAt() != null) {
+            dto.setUpdatedAt(LocalDateTime.now());
+        }
+
+        return dto;
+    }
+
+
 }

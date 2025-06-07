@@ -18,6 +18,7 @@ import br.ifsp.film_catalog.model.UserWatched;
 import br.ifsp.film_catalog.model.enums.RoleName;
 import br.ifsp.film_catalog.model.key.UserMovieId;
 import br.ifsp.film_catalog.repository.MovieRepository;
+import br.ifsp.film_catalog.repository.ReviewRepository;
 import br.ifsp.film_catalog.repository.RoleRepository;
 import br.ifsp.film_catalog.repository.UserFavoriteRepository;
 import br.ifsp.film_catalog.repository.UserRepository;
@@ -46,6 +47,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final MovieRepository movieRepository;
+    private final ReviewRepository reviewRepository;
     private final UserFavoriteRepository userFavoriteRepository;
     private final UserWatchedRepository userWatchedRepository;
     private final PasswordEncoder passwordEncoder;
@@ -59,7 +61,7 @@ public class UserService {
                          UserWatchedRepository userWatchedRepository,
                          PasswordEncoder passwordEncoder,
                          ModelMapper modelMapper,
-                         PagedResponseMapper pagedResponseMapper) {
+                         PagedResponseMapper pagedResponseMapper, ReviewRepository reviewRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.movieRepository = movieRepository;
@@ -68,6 +70,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
         this.modelMapper = modelMapper;
         this.pagedResponseMapper = pagedResponseMapper;
+        this.reviewRepository = reviewRepository;
     }
 
     @Transactional(readOnly = true)
@@ -298,6 +301,8 @@ public class UserService {
         UserMovieId watchedId = new UserMovieId(userId, movieId);
         if (userWatchedRepository.existsById(watchedId)) {
             userWatchedRepository.deleteById(watchedId);
+            
+            reviewRepository.deleteByUserWatchedMovieId(movieId);
         } else {
             throw new ResourceNotFoundException("Watched record not found for user " + userId + " and movie " + movieId);
         }
@@ -352,7 +357,7 @@ public class UserService {
             throw new IllegalArgumentException("Genres list cannot be null or empty.");
         }
 
-        List<Movie> recommendedMovies = movieRepository.findByGenresContaining(genres.get(0).getId(), pageable)
+        List<Movie> recommendedMovies = movieRepository.findByGenresContaining(genres.get(0), pageable)
                 .stream()
                 .filter(movie -> movie.getGenres().stream().anyMatch(genres::contains))
                 .collect(Collectors.toList());

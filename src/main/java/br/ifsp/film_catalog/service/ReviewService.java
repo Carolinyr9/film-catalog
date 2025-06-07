@@ -1,8 +1,10 @@
 package br.ifsp.film_catalog.service;
 
+import br.ifsp.film_catalog.dto.ReviewAveragesDTO;
 import br.ifsp.film_catalog.dto.ReviewRequestDTO;
 import br.ifsp.film_catalog.dto.ReviewResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
+import br.ifsp.film_catalog.dto.page.PagedResponseWithHiddenReviews;
 import br.ifsp.film_catalog.exception.InvalidReviewStateException;
 import br.ifsp.film_catalog.exception.ResourceNotFoundException;
 import br.ifsp.film_catalog.mapper.PagedResponseMapper;
@@ -84,25 +86,63 @@ public class ReviewService {
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<ReviewResponseDTO> getReviewsByMovie(Long movieId, Pageable pageable) {
+    public PagedResponseWithHiddenReviews getReviewsByMovie(Long movieId, Pageable pageable) {
         if (!movieRepository.existsById(movieId)) {
             throw new ResourceNotFoundException("Movie not found with id: " + movieId);
         }
-        Page<Review> reviewPage = reviewRepository.findByUserWatched_Movie_IdAndHiddenFalse(movieId, pageable);
-        List<ReviewResponseDTO> dtoList = reviewPage.map(this::toDTO).getContent();
-        return new PagedResponse<>(dtoList, reviewPage.getNumber(), reviewPage.getSize(),
-                reviewPage.getTotalElements(), reviewPage.getTotalPages(), reviewPage.isLast());
+
+        Page<Review> reviewPage = reviewRepository.findByUserWatched_Movie_Id(movieId, pageable);
+
+        List<Long> hiddenReviewIds = reviewPage.stream()
+            .filter(Review::isHidden)
+            .map(Review::getId)
+            .toList();
+
+        // Filtrar só as visíveis para enviar no DTO
+        List<ReviewResponseDTO> visibleReviewsDTO = reviewPage.stream()
+            .filter(review -> !review.isHidden())
+            .map(this::toDTO)
+            .toList();
+
+        return new PagedResponseWithHiddenReviews(
+            visibleReviewsDTO,
+            hiddenReviewIds,
+            reviewPage.getNumber(),
+            reviewPage.getSize(),
+            reviewPage.getTotalElements(),
+            reviewPage.getTotalPages(),
+            reviewPage.isLast()
+        );
     }
 
+
     @Transactional(readOnly = true)
-    public PagedResponse<ReviewResponseDTO> getReviewsByUser(Long userId, Pageable pageable) {
+    public PagedResponseWithHiddenReviews getReviewsByUser(Long userId, Pageable pageable) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User not found with id: " + userId);
         }
-        Page<Review> reviewPage = reviewRepository.findByUserWatched_User_IdAndHiddenFalse(userId, pageable);
-        List<ReviewResponseDTO> dtoList = reviewPage.map(this::toDTO).getContent();
-        return new PagedResponse<>(dtoList, reviewPage.getNumber(), reviewPage.getSize(),
-                reviewPage.getTotalElements(), reviewPage.getTotalPages(), reviewPage.isLast());
+
+        Page<Review> reviewPage = reviewRepository.findByUserWatched_User_Id(userId, pageable);
+
+        List<Long> hiddenReviewIds = reviewPage.stream()
+            .filter(Review::isHidden)
+            .map(Review::getId)
+            .toList();
+
+        List<ReviewResponseDTO> visibleReviewsDTO = reviewPage.stream()
+            .filter(review -> !review.isHidden())
+            .map(this::toDTO)
+            .toList();
+
+        return new PagedResponseWithHiddenReviews(
+            visibleReviewsDTO,
+            hiddenReviewIds,
+            reviewPage.getNumber(),
+            reviewPage.getSize(),
+            reviewPage.getTotalElements(),
+            reviewPage.getTotalPages(),
+            reviewPage.isLast()
+        );
     }
 
     @Transactional
@@ -198,7 +238,7 @@ public class ReviewService {
                 user.getUsername(), totalReviews, totalLikes, averageGeneralScore);
     }
 
-    public List<Double> getAverageWeighted(Pageable pageable, Long userId) {
+    public ReviewAveragesDTO getAverageWeighted(Pageable pageable, Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
@@ -207,14 +247,9 @@ public class ReviewService {
         double cinematographyAvg = reviewRepository.calculateAverageCinematographyScoreByUserWatched_User_Id(userId);
         double generalAvg = reviewRepository.calculateAverageGeneralScoreByUserWatched_User_Id(userId);
 
-        List<Double> averages = new ArrayList<>();
-        averages.add(directionAvg);
-        averages.add(screenplayAvg);
-        averages.add(cinematographyAvg);
-        averages.add(generalAvg);
-
-        return averages;
+        return new ReviewAveragesDTO(directionAvg, screenplayAvg, cinematographyAvg, generalAvg);
     }
+
 
     private ReviewResponseDTO toDTO(Review review) {
         return ReviewResponseDTO.builder()
@@ -236,4 +271,6 @@ public class ReviewService {
                 .movieTitle(review.getUserWatched().getMovie().getTitle())
                 .build();
     }
+
+
 }
