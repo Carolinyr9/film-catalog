@@ -71,7 +71,7 @@ public class MovieService {
     public PagedResponse<MovieResponseDTO> getMoviesByGenre(String genreName, Pageable pageable) {
         Genre genre = genreRepository.findByNameIgnoreCase(genreName)
                 .orElseThrow(() -> new ResourceNotFoundException("Genre not found: " + genreName));
-        Page<Movie> moviePage = movieRepository.findByGenresContaining(genre.getId(), pageable);
+        Page<Movie> moviePage = movieRepository.findByGenresContaining(genre, pageable);
         return pagedResponseMapper.toPagedResponse(moviePage, MovieResponseDTO.class);
     }
 

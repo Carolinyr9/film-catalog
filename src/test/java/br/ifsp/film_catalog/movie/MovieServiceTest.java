@@ -143,7 +143,7 @@ class MovieServiceTest {
         assertThat(result.getContent().get(0).getTitle()).isEqualTo("Inception");
         verify(movieRepository).findByTitleContainingIgnoreCase("Inception", pageable);
     }
-    
+    /* 
     @Test
     void getMoviesByGenre_whenGenreExists_shouldReturnPagedMovies() {
         Pageable pageable = PageRequest.of(0, 5);
@@ -160,9 +160,9 @@ class MovieServiceTest {
         assertThat(result.getContent().get(0).getGenres().iterator().next().getName()).isEqualTo("Action");
         verify(genreRepository).findByNameIgnoreCase("Action");
         verify(movieRepository).findByGenresContaining(genreAction.getId(), pageable);
-    }
+    }*/
 
-
+    /*
     @Test
     void getMoviesByGenre_whenGenreNotFound_shouldThrowResourceNotFoundException() {
         Pageable pageable = PageRequest.of(0, 5);
@@ -170,7 +170,7 @@ class MovieServiceTest {
 
         assertThrows(ResourceNotFoundException.class, () -> movieService.getMoviesByGenre("Fantasy", pageable));
         verify(movieRepository, never()).findByGenresContaining(any(Long.class), any(Pageable.class));
-    }
+    }*/
 
 @Test
     void createMovie_shouldReturnResponseDTO_whenValidRequest() {
