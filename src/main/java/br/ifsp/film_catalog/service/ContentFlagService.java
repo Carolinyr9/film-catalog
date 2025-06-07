@@ -8,6 +8,7 @@ import br.ifsp.film_catalog.mapper.PagedResponseMapper;
 import br.ifsp.film_catalog.model.ContentFlag;
 import br.ifsp.film_catalog.model.Review;
 import br.ifsp.film_catalog.model.User;
+import br.ifsp.film_catalog.model.key.UserReviewId;
 import br.ifsp.film_catalog.repository.ContentFlagRepository;
 import br.ifsp.film_catalog.repository.ReviewRepository;
 import br.ifsp.film_catalog.repository.UserRepository;
@@ -58,8 +59,9 @@ public class ContentFlagService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
 
-        if (contentFlagRepository.existsById_ReviewIdAndId_UserId(reviewId, reporterUserId)) {
-            throw new InvalidReviewStateException("User has already flagged this review.");
+        UserReviewId id = new UserReviewId(reporterUserId, reviewId);
+        if (contentFlagRepository.existsById(id)) {
+            throw new InvalidReviewStateException("User has already flagged this review: " + reporterUserId);
         }
 
         if (review.getUserWatched() != null && review.getUserWatched().getUser().getId().equals(reporterUserId)) {

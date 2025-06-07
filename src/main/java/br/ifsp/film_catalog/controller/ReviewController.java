@@ -174,7 +174,11 @@ public class ReviewController {
             @PathVariable Long reviewId,
             @Valid @RequestBody ContentFlagRequestDTO contentFlagRequestDTO,
             @Parameter(hidden = true) @AuthenticationPrincipal UserAuthenticated reportedBy) {
+        System.out.println("Usuário autenticado ID: " + reportedBy.getUser().getId());
+        System.out.println("Usuário autenticado Username: " + reportedBy.getUser().getUsername());
+
         ContentFlagResponseDTO flagged = contentFlagService.flagReview(reviewId, reportedBy.getUser().getId(), contentFlagRequestDTO);
+
         return new ResponseEntity<>(flagged, HttpStatus.CREATED);
     }
 
