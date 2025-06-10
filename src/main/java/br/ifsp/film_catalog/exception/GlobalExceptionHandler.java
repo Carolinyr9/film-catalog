@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Trata exceções de tentar ocultar reviews sem o minino de denuncias
+     * Trata exceções de tentar ocultar reviews sem o minino de denuncias e mais
      *
      */
     @ExceptionHandler(InvalidReviewStateException.class)
@@ -115,10 +115,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
     }
 
-    /**
-     * Trata exceções genéricas que não foram capturadas pelos handlers anteriores.
-     
-
+    
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception exception) {
@@ -129,6 +126,6 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-    */
+    
 
 }
