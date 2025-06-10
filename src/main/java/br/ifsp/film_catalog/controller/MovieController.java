@@ -172,7 +172,7 @@ public class MovieController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Buscar filmes por ano de lançamento", description = "Retorna uma lista paginada de filmes lançados no ano especificado.")
+    @Operation(summary = "Buscar filmes em destaque", description = "Retorna uma lista paginada de filmes em destaque.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista de filmes recuperada com sucesso"),
             @ApiResponse(responseCode = "403", description = "Acesso negado (se a segurança estiver habilitada)", 

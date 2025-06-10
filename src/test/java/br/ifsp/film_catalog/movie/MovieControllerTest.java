@@ -233,8 +233,8 @@ class MovieControllerTest {
 
 
     @Test
-        @WithMockUser(roles = "ADMIN")
-        void patchMovie_shouldReturnPatchedMovie_whenValid() throws Exception {
+    @WithMockUser(roles = "ADMIN")
+    void patchMovie_shouldReturnPatchedMovie_whenValid() throws Exception {
         MoviePatchDTO patchDTO = new MoviePatchDTO();
         patchDTO.setSynopsis("Descrição parcial atualizada");
 
@@ -254,7 +254,7 @@ class MovieControllerTest {
                 .andExpect(jsonPath("$.synopsis").value("Descrição parcial atualizada"));
 
         verify(movieService).patchMovie(eq(10L), any(MoviePatchDTO.class));
-        }
+    }
 
     @Test
     @WithMockUser(roles = "ADMIN")
@@ -268,8 +268,8 @@ class MovieControllerTest {
     }
 
     @Test
-        @WithMockUser 
-        void getHighlightedMovies_shouldReturnPagedMovies() throws Exception {
+    @WithMockUser 
+    void getHighlightedMovies_shouldReturnPagedMovies() throws Exception {
         PagedResponse<MovieResponseDTO> pagedMovies = new PagedResponse<>(
                 List.of(exampleMovie), 
                 0,              
@@ -286,7 +286,7 @@ class MovieControllerTest {
                 .andExpect(jsonPath("$.content[0].id").value(exampleMovie.getId()));
 
         verify(movieService).getHighlightedMovies(eq(0), eq(10));
-        }
+    }
 
 
 }
