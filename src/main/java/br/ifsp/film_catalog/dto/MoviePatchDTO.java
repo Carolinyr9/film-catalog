@@ -10,9 +10,12 @@ import lombok.AllArgsConstructor;
 import java.util.Optional;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = false)
 public class MoviePatchDTO {
     @Size(max = 255, message = "Movie title cannot exceed 255 characters.")
     private String title;

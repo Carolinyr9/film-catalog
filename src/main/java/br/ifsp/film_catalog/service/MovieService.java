@@ -5,6 +5,7 @@ import br.ifsp.film_catalog.dto.MoviePatchDTO;
 import br.ifsp.film_catalog.dto.MovieRequestDTO;
 import br.ifsp.film_catalog.dto.MovieResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
+import br.ifsp.film_catalog.exception.InvalidMovieStateException;
 import br.ifsp.film_catalog.exception.ResourceNotFoundException;
 import br.ifsp.film_catalog.mapper.PagedResponseMapper;
 import br.ifsp.film_catalog.model.Movie;
@@ -23,8 +24,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class MovieService {
@@ -84,8 +87,9 @@ public class MovieService {
     @Transactional
     public MovieResponseDTO createMovie(MovieRequestDTO movieRequestDTO) {
         if (movieRepository.findByTitle(movieRequestDTO.getTitle()).isPresent()) {
-             throw new IllegalArgumentException("Movie with title '" + movieRequestDTO.getTitle() + "' already exists.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Movie with title '" + movieRequestDTO.getTitle() + "' already exists.");
         }
+
         Movie movie = modelMapper.map(movieRequestDTO, Movie.class);
         for (Genre genre : movieRequestDTO.getGenres()) {
             Genre existingGenre = genreRepository.findByNameIgnoreCase(genre.getName())
@@ -103,7 +107,7 @@ public class MovieService {
 
         movieRepository.findByTitleIgnoreCase(movieRequestDTO.getTitle()).ifPresent(existingMovie -> {
             if (!existingMovie.getId().equals(id)) {
-                throw new IllegalArgumentException("Movie with title '" + movieRequestDTO.getTitle() + "' already exists.");
+                throw new InvalidMovieStateException("Another movie with this title and year already exists");
             }
         });
         

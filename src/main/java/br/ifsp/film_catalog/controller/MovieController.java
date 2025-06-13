@@ -13,6 +13,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -55,7 +57,7 @@ public class MovieController {
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/{id}")
-    public ResponseEntity<MovieResponseDTO> getMovieById(@PathVariable Long id) {
+    public ResponseEntity<MovieResponseDTO> getMovieById(@PathVariable @Valid Long id) {
         MovieResponseDTO movie = movieService.getMovieById(id);
         return ResponseEntity.ok(movie);
     }
@@ -86,7 +88,7 @@ public class MovieController {
     })
     @GetMapping("/search/by-genre")
     public ResponseEntity<PagedResponse<MovieResponseDTO>> getMoviesByGenre(
-        @RequestParam String genreName,
+        @RequestParam @NotBlank(message = "Genre name must not be blank") String genreName,
         @PageableDefault(size = 10, sort = "title") Pageable pageable
     ) {
         PagedResponse<MovieResponseDTO> movies = movieService.getMoviesByGenre(genreName, pageable);
