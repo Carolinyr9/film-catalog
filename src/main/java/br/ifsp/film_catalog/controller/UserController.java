@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 
 import java.util.List;
 
@@ -83,7 +84,7 @@ public class UserController {
     @GetMapping("/search/by-username")
     @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #username)")
     public ResponseEntity<UserResponseDTO> getUserByUsername(
-        @RequestParam String username
+        @RequestParam @NotBlank(message = "Username cannot be blank") String username
     ) {
         UserResponseDTO user = userService.getUserByUsername(username);
         return ResponseEntity.ok(user);
