@@ -13,6 +13,7 @@ import br.ifsp.film_catalog.model.enums.ContentRating;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Builder
 @Table(name = "movies")
 public class Movie extends BaseEntity {
 

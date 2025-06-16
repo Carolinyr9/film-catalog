@@ -122,7 +122,7 @@ class ReviewControllerTest {
 
         @Test
         @WithMockUser(username = "joaosilva", roles = "USER")
-        void createReview_shouldReturnCreatedReview_whenValid() throws Exception {
+        void shouldReturn201AndReviewResponse_whenCreatingValidReview() throws Exception {
                 ReviewRequestDTO request = new ReviewRequestDTO();
                 request.setContent("Ótimo filme!");
                 request.setGeneralScore(5);
@@ -136,13 +136,20 @@ class ReviewControllerTest {
                 mockMvc.perform(post("/api/users/{userId}/movies/{movieId}/reviews", userId, movieId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
-                                // Passa o CustomUserDetails como principal para corresponder ao
-                                // @AuthenticationPrincipal
-                                .with(authentication(new UsernamePasswordAuthenticationToken(authenticatedUserPrincipal,
-                                                null, authenticatedUserPrincipal.getAuthorities()))))
+                                .with(authentication(new UsernamePasswordAuthenticationToken(
+                                                authenticatedUserPrincipal,
+                                                null,
+                                                authenticatedUserPrincipal.getAuthorities()))))
                                 .andExpect(status().isCreated())
+                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                                 .andExpect(jsonPath("$.id").value(exampleReview.getId()))
-                                .andExpect(jsonPath("$.content").value(exampleReview.getContent()));
+                                .andExpect(jsonPath("$.content").value(exampleReview.getContent()))
+                                .andExpect(jsonPath("$.generalScore").value(exampleReview.getGeneralScore()))
+                                .andExpect(jsonPath("$.directionScore").value(exampleReview.getDirectionScore()))
+                                .andExpect(jsonPath("$.screenplayScore").value(exampleReview.getScreenplayScore()))
+                                .andExpect(jsonPath("$.cinematographyScore")
+                                                .value(exampleReview.getCinematographyScore()))
+                                .andExpect(jsonPath("$.movieId").value(exampleReview.getMovieId()));
 
                 verify(reviewService).createReview(eq(userId), eq(movieId), any(ReviewRequestDTO.class));
         }
@@ -196,20 +203,19 @@ class ReviewControllerTest {
         @Test
         @WithMockUser(roles = "USER")
         void deleteReview_shouldReturnNoContent_whenOwner() throws Exception {
-        doNothing().when(reviewService).deleteReview(eq(reviewId), eq(userId));
+                doNothing().when(reviewService).deleteReview(eq(reviewId), eq(userId));
 
-        when(securityService.isReviewOwner(any(Authentication.class), eq(reviewId))).thenReturn(true);
+                when(securityService.isReviewOwner(any(Authentication.class), eq(reviewId))).thenReturn(true);
 
-        mockMvc.perform(delete("/api/reviews/{reviewId}", reviewId)
-                        .with(authentication(new UsernamePasswordAuthenticationToken(authenticatedUserPrincipal,
-                                                                                null,
-                                                                                authenticatedUserPrincipal.getAuthorities())))
-                        .requestAttr("userIdFromPrincipal", userId) 
-                )
-                .andExpect(status().isNoContent());
+                mockMvc.perform(delete("/api/reviews/{reviewId}", reviewId)
+                                .with(authentication(new UsernamePasswordAuthenticationToken(authenticatedUserPrincipal,
+                                                null,
+                                                authenticatedUserPrincipal.getAuthorities())))
+                                .requestAttr("userIdFromPrincipal", userId))
+                                .andExpect(status().isNoContent());
 
-        verify(reviewService).deleteReview(reviewId, userId);
-}
+                verify(reviewService).deleteReview(reviewId, userId);
+        }
 
         @Test
         @WithMockUser(roles = "USER")
@@ -386,21 +392,23 @@ class ReviewControllerTest {
                                 .andExpect(status().isUnauthorized());
         }
 
-    @Test
+        @Test
         @WithMockUser(username = "joaosilva", roles = "USER")
         void getReviewsByUser_shouldHandlePaginationAndSorting() throws Exception {
-        ReviewResponseDTO review1 = ReviewResponseDTO.builder().id(2L).userId(userId).movieId(movieId).generalScore(3).content("Review 1").build();
-        PagedResponseWithHiddenReviews pagedResponse = new PagedResponseWithHiddenReviews(List.of(review1), Collections.emptyList(), 0, 1, 2L, 2, false);
+                ReviewResponseDTO review1 = ReviewResponseDTO.builder().id(2L).userId(userId).movieId(movieId)
+                                .generalScore(3).content("Review 1").build();
+                PagedResponseWithHiddenReviews pagedResponse = new PagedResponseWithHiddenReviews(List.of(review1),
+                                Collections.emptyList(), 0, 1, 2L, 2, false);
 
-        when(reviewService.getReviewsByUser(eq(userId), any(Pageable.class))).thenReturn(pagedResponse);
+                when(reviewService.getReviewsByUser(eq(userId), any(Pageable.class))).thenReturn(pagedResponse);
 
-        mockMvc.perform(get("/api/users/{userId}/reviews", userId)
+                mockMvc.perform(get("/api/users/{userId}/reviews", userId)
                                 .param("page", "0")
                                 .param("size", "1")
                                 .param("sort", "createdAt,desc"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.visibleReviews", hasSize(1))) 
-                .andExpect(jsonPath("$.visibleReviews[0].id").value(review1.getId())); 
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.visibleReviews", hasSize(1)))
+                                .andExpect(jsonPath("$.visibleReviews[0].id").value(review1.getId()));
         }
 
         // --- updateReview ---
@@ -408,7 +416,7 @@ class ReviewControllerTest {
         @WithMockUser(roles = "USER")
         void updateReview_shouldReturn400_whenInvalidInput() throws Exception {
                 ReviewRequestDTO invalidRequest = new ReviewRequestDTO();
-                invalidRequest.setGeneralScore(10); 
+                invalidRequest.setGeneralScore(10);
 
                 when(reviewService.updateReview(eq(reviewId), eq(userId), any(ReviewRequestDTO.class)))
                                 .thenThrow(new IllegalArgumentException("Dados de entrada inválidos"));

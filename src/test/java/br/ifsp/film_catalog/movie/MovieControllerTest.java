@@ -7,7 +7,9 @@ import br.ifsp.film_catalog.dto.MovieResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
 import br.ifsp.film_catalog.exception.InvalidMovieStateException;
 import br.ifsp.film_catalog.model.Genre;
+import br.ifsp.film_catalog.model.Movie;
 import br.ifsp.film_catalog.model.enums.ContentRating;
+import br.ifsp.film_catalog.repository.MovieRepository;
 import br.ifsp.film_catalog.service.MovieService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,8 +31,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Year;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 import java.util.List;
@@ -40,6 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ActiveProfiles("test")
 @SpringBootTest
@@ -51,6 +56,9 @@ class MovieControllerTest {
 
         @MockBean
         private MovieService movieService;
+
+        @Autowired
+        private MovieRepository movieRepository;
 
         @Autowired
         private ObjectMapper objectMapper;
@@ -110,33 +118,21 @@ class MovieControllerTest {
 
         @Test
         void getAllMovies_shouldReturn401_whenUnauthorized() throws Exception {
-                // No @WithMockUser annotation
                 mockMvc.perform(get("/api/movies"))
-                                .andExpect(status().isUnauthorized()); // Spring Security handles this if not
-                                                                       // authenticated
-                verifyNoInteractions(movieService); // Service should not be called
+                                .andExpect(status().isUnauthorized());
+                verifyNoInteractions(movieService);
         }
 
         @Test
-        @WithMockUser(roles = "USER") // A user role that might not have access if a global rule existed
+        @WithMockUser(roles = "USER")
         void getAllMovies_shouldReturn403_whenForbidden() throws Exception {
-                // Based on the provided MovieController, getAllMovies does not have
-                // @PreAuthorize.
-                // If a global security config was set up to deny access for certain roles, this
-                // test would apply.
-                // For now, assuming no specific role is required by default, it will be 200 OK.
-                // To make this test pass, Spring Security configuration would need a global
-                // rule,
-                // or @PreAuthorize("hasRole('ADMIN')") would need to be added to getAllMovies.
-                // As the current controller doesn't have it, this test will pass as 200 OK for
-                // a user.
-                // If security config changes, this test would need to be adjusted.
+
                 PagedResponse<MovieResponseDTO> pagedMovies = new PagedResponse<>(Collections.emptyList(), 0, 10, 0, 0,
                                 true);
                 when(movieService.getAllMovies(any(Pageable.class))).thenReturn(pagedMovies);
 
                 mockMvc.perform(get("/api/movies"))
-                                .andExpect(status().isOk()); // Currently, no 403 on this endpoint by default
+                                .andExpect(status().isOk());
         }
 
         @Test
@@ -149,8 +145,6 @@ class MovieControllerTest {
                                 2,
                                 1,
                                 true);
-                // Mock the service to return movies when called with specific pageable
-                // parameters
                 when(movieService.getAllMovies(argThat(pageable -> pageable.getPageNumber() == 1 &&
                                 pageable.getPageSize() == 5 &&
                                 pageable.getSort().equals(Sort.by("releaseYear").descending()))))
@@ -225,11 +219,9 @@ class MovieControllerTest {
         @WithMockUser
         void getMovieById_shouldReturn400_whenInvalidIdFormat() throws Exception {
                 mockMvc.perform(get("/api/movies/invalidId"))
-                                .andExpect(status().isBadRequest()); // Spring handles type mismatch to 400
-                verifyNoInteractions(movieService); // Service should not be called
+                                .andExpect(status().isBadRequest());
+                verifyNoInteractions(movieService);
         }
-
-        // --- getMoviesByTitle Tests ---
 
         @Test
         @WithMockUser
@@ -262,7 +254,6 @@ class MovieControllerTest {
         @Test
         @WithMockUser(roles = "USER")
         void getMoviesByTitle_shouldReturn403_whenForbidden() throws Exception {
-                // No @PreAuthorize, so it will return 200 OK.
                 PagedResponse<MovieResponseDTO> pagedMovies = new PagedResponse<>(Collections.emptyList(), 0, 10, 0, 0,
                                 true);
                 when(movieService.getMoviesByTitle(eq("forbidden"), any(Pageable.class))).thenReturn(pagedMovies);
