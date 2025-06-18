@@ -5,14 +5,18 @@ import br.ifsp.film_catalog.dto.MoviePatchDTO;
 import br.ifsp.film_catalog.dto.MovieRequestDTO;
 import br.ifsp.film_catalog.dto.MovieResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
+import br.ifsp.film_catalog.exception.InvalidMovieStateException;
 import br.ifsp.film_catalog.exception.ResourceNotFoundException;
 import br.ifsp.film_catalog.mapper.PagedResponseMapper;
 import br.ifsp.film_catalog.model.Movie;
+import br.ifsp.film_catalog.model.enums.ContentRating;
 import br.ifsp.film_catalog.model.Genre;
 import br.ifsp.film_catalog.repository.MovieRepository;
 import br.ifsp.film_catalog.repository.ReviewRepository;
 import br.ifsp.film_catalog.repository.GenreRepository;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
@@ -20,8 +24,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class MovieService {
@@ -68,7 +74,7 @@ public class MovieService {
     public PagedResponse<MovieResponseDTO> getMoviesByGenre(String genreName, Pageable pageable) {
         Genre genre = genreRepository.findByNameIgnoreCase(genreName)
                 .orElseThrow(() -> new ResourceNotFoundException("Genre not found: " + genreName));
-        Page<Movie> moviePage = movieRepository.findByGenresContaining(genre.getId(), pageable);
+        Page<Movie> moviePage = movieRepository.findByGenresContaining(genre, pageable);
         return pagedResponseMapper.toPagedResponse(moviePage, MovieResponseDTO.class);
     }
 
@@ -81,10 +87,10 @@ public class MovieService {
     @Transactional
     public MovieResponseDTO createMovie(MovieRequestDTO movieRequestDTO) {
         if (movieRepository.findByTitle(movieRequestDTO.getTitle()).isPresent()) {
-             throw new IllegalArgumentException("Movie with title '" + movieRequestDTO.getTitle() + "' already exists.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Movie with title '" + movieRequestDTO.getTitle() + "' already exists.");
         }
+
         Movie movie = modelMapper.map(movieRequestDTO, Movie.class);
-        // Add DTO genre to movie
         for (Genre genre : movieRequestDTO.getGenres()) {
             Genre existingGenre = genreRepository.findByNameIgnoreCase(genre.getName())
                     .orElseThrow(() -> new ResourceNotFoundException("Genre not found: " + genre.getName()));
@@ -101,7 +107,7 @@ public class MovieService {
 
         movieRepository.findByTitleIgnoreCase(movieRequestDTO.getTitle()).ifPresent(existingMovie -> {
             if (!existingMovie.getId().equals(id)) {
-                throw new IllegalArgumentException("Movie with title '" + movieRequestDTO.getTitle() + "' already exists.");
+                throw new InvalidMovieStateException("Another movie with this title and year already exists");
             }
         });
         
@@ -115,11 +121,38 @@ public class MovieService {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie id not found: " + id));
 
-        modelMapper.map(patchDTO, movie);
-        movie.setId(id);
+        if (patchDTO.getTitle() != null) {
+            movie.setTitle(patchDTO.getTitle());
+        }
+        if (patchDTO.getSynopsis() != null) {
+            movie.setSynopsis(patchDTO.getSynopsis());
+        }
+        if (patchDTO.getReleaseYear() != null) {
+            movie.setReleaseYear(patchDTO.getReleaseYear());
+        }
+        if (patchDTO.getDuration() != null) {
+            movie.setDuration(patchDTO.getDuration());
+        }
+        if (patchDTO.getContentRating() != null) {
+            try {
+                ContentRating rating = ContentRating.valueOf(patchDTO.getContentRating().toUpperCase());
+                movie.setContentRating(rating);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid content rating value: " + patchDTO.getContentRating());
+            }
+        }
+
+        if (patchDTO.getGenreIds() != null) {
+            // Aqui você vai precisar buscar os gêneros pelo IDs e setar no filme
+            List<Genre> genres = genreRepository.findAllById(patchDTO.getGenreIds());
+            movie.getGenres().clear();
+            movie.getGenres().addAll(genres);
+        }
+
         movie = movieRepository.save(movie);
         return modelMapper.map(movie, MovieResponseDTO.class);
     }
+
 
     @Transactional
     public void deleteMovie(Long id) {
@@ -127,6 +160,7 @@ public class MovieService {
             throw new ResourceNotFoundException("Movie id not found: " + id);
         }
         // Add checks here if movie deletion has other constraints (e.g., part of watchlists, reviews)
+
         movieRepository.deleteById(id);
     }
 
@@ -136,13 +170,24 @@ public class MovieService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "generalScore"));
         Page<Movie> topMovies = reviewRepository.findTopRatedMovies(pageable);
 
+        if (topMovies.isEmpty()) {
+            pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "id"));
+            topMovies = movieRepository.findAll(pageable);
+        }
+
         List<MovieResponseDTO> movieDTOs = topMovies.getContent().stream()
             .map(movie -> modelMapper.map(movie, MovieResponseDTO.class))
             .toList();
 
-        return new PagedResponse<>(movieDTOs, topMovies.getNumber(),
-                topMovies.getSize(), topMovies.getTotalElements(),
-                topMovies.getTotalPages(), topMovies.isLast());
+        return new PagedResponse<>(
+            movieDTOs,
+            topMovies.getNumber(),
+            topMovies.getSize(),
+            topMovies.getTotalElements(),
+            topMovies.getTotalPages(),
+            topMovies.isLast()
+        );
     }
+
 
 }

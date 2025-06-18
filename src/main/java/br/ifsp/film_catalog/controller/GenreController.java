@@ -44,13 +44,14 @@ public class GenreController {
         return ResponseEntity.ok(genreService.getAllGenres(pageable));
     }
 
+    @GetMapping("/{id}")
     @Operation(summary = "Buscar gênero por ID", description = "Retorna um único gênero pelo seu ID exclusivo.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Gênero recuperado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Gênero não encontrado", 
-                         content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+                        content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "403", description = "Acesso negado (se a segurança estiver habilitada)", 
-                         content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+                        content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<GenreResponseDTO> getGenreById(@PathVariable Long id) {
         return ResponseEntity.ok(genreService.getGenreById(id));
@@ -99,9 +100,13 @@ public class GenreController {
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteGenre(@PathVariable Long id) {
-        genreService.deleteGenre(id);
-        return ResponseEntity.noContent().build();
+        try {
+            genreService.deleteGenre(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
     }
+
 }

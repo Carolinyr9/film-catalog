@@ -37,12 +37,12 @@ public class ContentFlag {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
-    @JoinColumn(name = "reporter_user_id", referencedColumnName = "id", insertable = false, updatable = false)
+    @JoinColumn(name = "reporter_user_id", referencedColumnName = "id")
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("reviewId")
-    @JoinColumn(name = "review_id", referencedColumnName = "id", insertable = false, updatable = false)
+    @JoinColumn(name = "review_id", referencedColumnName = "id")
     private Review review;
 
     public ContentFlag(User user, Review review, String flagReason) {

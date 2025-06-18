@@ -18,6 +18,7 @@ import br.ifsp.film_catalog.model.UserWatched;
 import br.ifsp.film_catalog.model.enums.RoleName;
 import br.ifsp.film_catalog.model.key.UserMovieId;
 import br.ifsp.film_catalog.repository.MovieRepository;
+import br.ifsp.film_catalog.repository.ReviewRepository;
 import br.ifsp.film_catalog.repository.RoleRepository;
 import br.ifsp.film_catalog.repository.UserFavoriteRepository;
 import br.ifsp.film_catalog.repository.UserRepository;
@@ -46,6 +47,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final MovieRepository movieRepository;
+    private final ReviewRepository reviewRepository;
     private final UserFavoriteRepository userFavoriteRepository;
     private final UserWatchedRepository userWatchedRepository;
     private final PasswordEncoder passwordEncoder;
@@ -59,7 +61,7 @@ public class UserService {
                          UserWatchedRepository userWatchedRepository,
                          PasswordEncoder passwordEncoder,
                          ModelMapper modelMapper,
-                         PagedResponseMapper pagedResponseMapper) {
+                         PagedResponseMapper pagedResponseMapper, ReviewRepository reviewRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.movieRepository = movieRepository;
@@ -68,6 +70,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
         this.modelMapper = modelMapper;
         this.pagedResponseMapper = pagedResponseMapper;
+        this.reviewRepository = reviewRepository;
     }
 
     @Transactional(readOnly = true)
@@ -168,54 +171,61 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
         // Name
-        userPatchDTO.getName().ifPresent(name -> {
+        if (userPatchDTO.getName() != null) {
+            String name = userPatchDTO.getName();
             if (name.isBlank()) throw new IllegalArgumentException("Name cannot be blank if provided.");
             user.setName(name);
-        });
+        }
 
         // Email
-        userPatchDTO.getEmail().ifPresent(email -> {
+        if (userPatchDTO.getEmail() != null) {
+            String email = userPatchDTO.getEmail();
             if (email.isBlank()) throw new IllegalArgumentException("Email cannot be blank if provided.");
-            userRepository.findByEmailIgnoreCase(email).ifPresent(existingUser -> {
-                if (!existingUser.getId().equals(id)) {
+
+            userRepository.findByEmailIgnoreCase(email).ifPresent(existingUserByEmail -> {
+                if (!existingUserByEmail.getId().equals(id)) {
                     throw new IllegalArgumentException("Email '" + email + "' already exists.");
                 }
             });
             user.setEmail(email);
-        });
+        }
 
         // Username
-        userPatchDTO.getUsername().ifPresent(username -> {
+        if (userPatchDTO.getUsername() != null) {
+            String username = userPatchDTO.getUsername();
             if (username.isBlank()) throw new IllegalArgumentException("Username cannot be blank if provided.");
-            userRepository.findByUsername(username).ifPresent(existingUser -> {
-                if (!existingUser.getId().equals(id)) {
+
+            userRepository.findByUsername(username).ifPresent(existingUserByUsername -> {
+                if (!existingUserByUsername.getId().equals(id)) {
                     throw new IllegalArgumentException("Username '" + username + "' already exists.");
                 }
             });
             user.setUsername(username);
-        });
+        }
 
         // Password
-        userPatchDTO.getPassword().ifPresent(password -> {
+        if (userPatchDTO.getPassword() != null) {
+            String password = userPatchDTO.getPassword();
             if (password.isBlank()) throw new IllegalArgumentException("Password cannot be blank if provided.");
-            // Add password complexity validation here if needed, or rely on UserRequestDTO's for full updates
             user.setPassword(passwordEncoder.encode(password));
-        });
+        }
 
         // Roles
-        userPatchDTO.getRoleIds().ifPresent(roleIds -> {
-            Set<Role> newRoles = roleIds.stream()
+        if (userPatchDTO.getRoleIds() != null) {
+            Set<Role> newRoles = userPatchDTO.getRoleIds().stream()
                     .map(roleId -> roleRepository.findById(roleId)
                             .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId)))
                     .collect(Collectors.toSet());
+            user.getRoles().clear();  // Limpa roles atuais antes
             for (Role role : newRoles) {
                 user.addRole(role);
             }
-        });
+        }
 
         User patchedUser = userRepository.save(user);
         return modelMapper.map(patchedUser, UserResponseDTO.class);
     }
+
 
     @Transactional
     public void deleteUser(Long id) {
@@ -291,6 +301,8 @@ public class UserService {
         UserMovieId watchedId = new UserMovieId(userId, movieId);
         if (userWatchedRepository.existsById(watchedId)) {
             userWatchedRepository.deleteById(watchedId);
+            
+            reviewRepository.deleteByUserWatchedMovieId(movieId);
         } else {
             throw new ResourceNotFoundException("Watched record not found for user " + userId + " and movie " + movieId);
         }
@@ -345,7 +357,7 @@ public class UserService {
             throw new IllegalArgumentException("Genres list cannot be null or empty.");
         }
 
-        List<Movie> recommendedMovies = movieRepository.findByGenresContaining(genres.get(0).getId(), pageable)
+        List<Movie> recommendedMovies = movieRepository.findByGenresContaining(genres.get(0), pageable)
                 .stream()
                 .filter(movie -> movie.getGenres().stream().anyMatch(genres::contains))
                 .collect(Collectors.toList());

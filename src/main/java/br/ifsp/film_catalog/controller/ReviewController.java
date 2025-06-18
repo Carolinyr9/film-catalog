@@ -1,17 +1,21 @@
 package br.ifsp.film_catalog.controller;
 
+import br.ifsp.film_catalog.config.CustomUserDetails;
 import br.ifsp.film_catalog.dto.ContentFlagRequestDTO;
 import br.ifsp.film_catalog.dto.ContentFlagResponseDTO;
+import br.ifsp.film_catalog.dto.ReviewAveragesDTO;
 import br.ifsp.film_catalog.dto.ReviewRequestDTO;
 import br.ifsp.film_catalog.dto.ReviewResponseDTO;
 import br.ifsp.film_catalog.dto.UserResponseDTO;
 import br.ifsp.film_catalog.dto.page.PagedResponse;
+import br.ifsp.film_catalog.dto.page.PagedResponseWithHiddenReviews;
 import br.ifsp.film_catalog.exception.ErrorResponse;
 import br.ifsp.film_catalog.security.UserAuthenticated;
 import br.ifsp.film_catalog.service.ContentFlagService;
 import br.ifsp.film_catalog.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -79,10 +83,10 @@ public class ReviewController {
             @ApiResponse(responseCode = "404", description = "Filme não encontrado")
     })
     @GetMapping("/movies/{movieId}/reviews")
-    public ResponseEntity<PagedResponse<ReviewResponseDTO>> getReviewsByMovie(
+    public ResponseEntity<PagedResponseWithHiddenReviews> getReviewsByMovie(
             @PathVariable Long movieId,
             @PageableDefault(size = 10, sort = "likesCount") Pageable pageable) {
-        PagedResponse<ReviewResponseDTO> reviews = reviewService.getReviewsByMovie(movieId, pageable);
+        PagedResponseWithHiddenReviews reviews = reviewService.getReviewsByMovie(movieId, pageable);
         return ResponseEntity.ok(reviews);
     }
 
@@ -94,10 +98,10 @@ public class ReviewController {
     })
     @GetMapping("/users/{userId}/reviews")
     @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #userId)")
-    public ResponseEntity<PagedResponse<ReviewResponseDTO>> getReviewsByUser(
+    public ResponseEntity<PagedResponseWithHiddenReviews> getReviewsByUser(
             @PathVariable Long userId,
             @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
-        PagedResponse<ReviewResponseDTO> reviews = reviewService.getReviewsByUser(userId, pageable);
+        PagedResponseWithHiddenReviews reviews = reviewService.getReviewsByUser(userId, pageable);
         return ResponseEntity.ok(reviews);
     }
 
@@ -108,17 +112,23 @@ public class ReviewController {
             @ApiResponse(responseCode = "403", description = "Acesso negado (usuário não é o proprietário da avaliação)"),
             @ApiResponse(responseCode = "404", description = "Avaliação não encontrada")
     })
-    @PutMapping("/reviews/{reviewId}")
-    // userId is passed from the authenticated principal by securityService.isReviewOwner
     @PreAuthorize("@securityService.isReviewOwner(authentication, #reviewId)")
+    @PutMapping("/reviews/{reviewId}")
     public ResponseEntity<ReviewResponseDTO> updateReview(
             @PathVariable Long reviewId,
             @Valid @RequestBody ReviewRequestDTO reviewRequestDTO,
-            @RequestAttribute("userIdFromPrincipal") Long userId // Injetado pelo SecurityService (ver abaixo)
+            Authentication authentication
     ) {
+        Long userId = extractUserIdFromAuthentication(authentication);
         ReviewResponseDTO updatedReview = reviewService.updateReview(reviewId, userId, reviewRequestDTO);
         return ResponseEntity.ok(updatedReview);
     }
+
+    private Long extractUserIdFromAuthentication(Authentication authentication) {
+        UserAuthenticated userAuthenticated = (UserAuthenticated) authentication.getPrincipal();
+        return userAuthenticated.getUser().getId();  
+    }
+
 
     @Operation(summary = "Deletar uma avaliação")
     @ApiResponses({
@@ -164,7 +174,11 @@ public class ReviewController {
             @PathVariable Long reviewId,
             @Valid @RequestBody ContentFlagRequestDTO contentFlagRequestDTO,
             @Parameter(hidden = true) @AuthenticationPrincipal UserAuthenticated reportedBy) {
+        System.out.println("Usuário autenticado ID: " + reportedBy.getUser().getId());
+        System.out.println("Usuário autenticado Username: " + reportedBy.getUser().getUsername());
+
         ContentFlagResponseDTO flagged = contentFlagService.flagReview(reviewId, reportedBy.getUser().getId(), contentFlagRequestDTO);
+
         return new ResponseEntity<>(flagged, HttpStatus.CREATED);
     }
 
@@ -181,16 +195,17 @@ public class ReviewController {
         reviewService.exportAsPdf(response);
     }
 
+    @GetMapping("/reviews/{userId}/userStatistics")
     @Operation(summary = "Listar estatísticas de avaliações feitas por um usuário específico")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Estatísticas recuperadas com sucesso"),
             @ApiResponse(responseCode = "403", description = "Acesso negado"),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
     })
-    @GetMapping("/reviews/{userId}/userStatistics")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> getUserStatistics(
-            @PageableDefault(size = 10, sort = "reviewsCount") Pageable pageable, Long userId) {
+            @PageableDefault(size = 10, sort = "reviewsCount") Pageable pageable,
+            @PathVariable Long userId) {
         String userStatistics = reviewService.getUserStatistics(pageable, userId);
         return ResponseEntity.ok(userStatistics);
     }
@@ -203,9 +218,10 @@ public class ReviewController {
     })
     @GetMapping("/reviews/{userId}/average-weighted")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List> getAverageWeighted(
-            @PageableDefault(size = 10, sort = "reviewsCount") Pageable pageable, Long userId) {
-        List reviewsStatistics = reviewService.getAverageWeighted(pageable, userId);
+    public ResponseEntity<ReviewAveragesDTO> getAverageWeighted(
+            @PageableDefault(size = 10, sort = "reviewsCount") Pageable pageable, 
+            @PathVariable Long userId) {
+        ReviewAveragesDTO reviewsStatistics = reviewService.getAverageWeighted(pageable, userId);
         return ResponseEntity.ok(reviewsStatistics);
     }
 

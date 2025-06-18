@@ -1,5 +1,6 @@
 package br.ifsp.film_catalog.repository;
 
+import br.ifsp.film_catalog.model.Genre;
 import br.ifsp.film_catalog.model.Movie;
 
 import java.util.Optional;
@@ -16,7 +17,7 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
     Optional<Movie> findByTitleIgnoreCase(String title);
     Page<Movie> findByTitleContainingIgnoreCase(String title, Pageable pageable);
     Page<Movie> findByReleaseYear(int releaseYear, Pageable pageable);
-    Page<Movie> findByGenresContaining(Long genreId, Pageable pageable);
+    Page<Movie> findByGenresContaining(Genre genre, Pageable pageable);
 
     @Query(value = "SELECT DISTINCT m FROM Movie m JOIN m.genres g WHERE LOWER(g.name) LIKE LOWER(CONCAT('%', :genreName, '%'))",
            countQuery = "SELECT COUNT(DISTINCT m) FROM Movie m JOIN m.genres g WHERE LOWER(g.name) LIKE LOWER(CONCAT('%', :genreName, '%'))")

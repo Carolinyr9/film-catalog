@@ -1,39 +1,41 @@
-package br.ifsp.film_catalog.security;
+package br.ifsp.film_catalog.config;
 
-import java.security.Principal;
-import java.util.Collection;
-
-import br.ifsp.film_catalog.model.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-public class UserAuthenticated implements UserDetails, Principal {
+import java.util.Collection;
 
-    private final User user;
+public class CustomUserDetails implements UserDetails {
 
-    public UserAuthenticated(User user) {
-        this.user = user;
+    private Long id;
+    private String username;
+    private String password;
+    private Collection<? extends GrantedAuthority> authorities;
+
+    public CustomUserDetails(Long id, String username, String password, Collection<? extends GrantedAuthority> authorities) {
+        this.id = id;
+        this.username = username;
+        this.password = password;
+        this.authorities = authorities;
     }
 
-    public User getUser() {
-        return user;
+    public Long getId() {
+        return id;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return user.getRoles().stream()
-                .map(role -> (GrantedAuthority) () -> role.getRoleName().name())
-                .toList();
+        return authorities;
     }
 
     @Override
     public String getPassword() {
-        return user.getPassword();
+        return password;
     }
 
     @Override
     public String getUsername() {
-        return user.getUsername();
+        return username;
     }
 
     @Override
@@ -55,10 +57,4 @@ public class UserAuthenticated implements UserDetails, Principal {
     public boolean isEnabled() {
         return true;
     }
-
-    @Override
-    public String getName() {
-        return user.getUsername();
-    }
-
 }

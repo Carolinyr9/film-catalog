@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 
 import java.util.List;
 
@@ -51,7 +52,6 @@ public class UserController {
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PagedResponse<UserResponseDTO>> getAllUsers(
             @PageableDefault(size = 10, sort = "name") Pageable pageable) {
         PagedResponse<UserResponseDTO> users = userService.getAllUsers(pageable);
@@ -84,7 +84,7 @@ public class UserController {
     @GetMapping("/search/by-username")
     @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #username)")
     public ResponseEntity<UserResponseDTO> getUserByUsername(
-        @RequestParam String username
+        @RequestParam @NotBlank(message = "Username cannot be blank") String username
     ) {
         UserResponseDTO user = userService.getUserByUsername(username);
         return ResponseEntity.ok(user);
@@ -146,10 +146,13 @@ public class UserController {
     })
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or @securityService.isOwner(authentication, #id)")
-    public ResponseEntity<UserResponseDTO> patchUser(@PathVariable Long id, @Valid @RequestBody UserPatchDTO userPatchDTO) {
-        UserResponseDTO patchedUser = userService.patchUser(id, userPatchDTO);
-        return ResponseEntity.ok(patchedUser);
+    public ResponseEntity<UserResponseDTO> patchUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UserPatchDTO userPatchDTO) {
+        UserResponseDTO updatedUser = userService.patchUser(id, userPatchDTO);
+        return ResponseEntity.ok(updatedUser);
     }
+
 
     @Operation(summary = "Excluir um usuário", description = "Exclui um usuário pelo seu ID.")
     @ApiResponses(value = {

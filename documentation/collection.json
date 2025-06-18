@@ -1,0 +1,2051 @@
+{
+    "info": {
+        "_postman_id": "ID",
+        "name": "Film Catalog API (ft-testing)",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Collection to test the Film Catalog API"
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Admin Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"Admin token is received\", function () {",
+                                    "    var token = pm.response.text();",
+                                    "    pm.expect(token).to.not.be.empty;",
+                                    "    pm.collectionVariables.set(\"admin_jwt_token\", token);",
+                                    "    console.log(\"Admin Token set: \" + token);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"AdminPassword123!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth"
+                            ]
+                        },
+                        "description": "Logs in as the default admin user."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Register New User (Public)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 201\", function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.id) {",
+                                    "    pm.collectionVariables.set(\"newlyRegisteredUserId\", jsonData.id);",
+                                    "    pm.collectionVariables.set(\"newlyRegisteredUsername\", jsonData.username);",
+                                    "    console.log(\"Newly Registered User ID: \" + jsonData.id + \", Username: \" + jsonData.username);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Test User {{$randomInt}}\",\n  \"email\": \"testuser{{$randomInt}}@example.com\",\n  \"username\": \"testuser{{$randomInt}}\",\n  \"password\": \"UserPass123!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/register",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "register"
+                            ]
+                        },
+                        "description": "Registers a new standard user."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Login as Newly Registered User",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"User token is received\", function () {",
+                                    "    var token = pm.response.text();",
+                                    "    pm.expect(token).to.not.be.empty;",
+                                    "    pm.collectionVariables.set(\"user_jwt_token\", token);",
+                                    "    console.log(\"User Token set for {{newlyRegisteredUsername}}: \" + token);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{newlyRegisteredUsername}}\",\n  \"password\": \"UserPass123!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth"
+                            ]
+                        },
+                        "description": "Logs in as the newly registered user to get a ROLE_USER token."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Users",
+            "item": [
+                {
+                    "name": "Get All Users (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users?page=0&size=10&sort=name,asc",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "0"
+                                },
+                                {
+                                    "key": "size",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "sort",
+                                    "value": "name,asc"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create User (Admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 201\", function () { pm.response.to.have.status(201); });",
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.id) {",
+                                    "    pm.collectionVariables.set(\"createdAdminUserId\", jsonData.id);",
+                                    "    pm.collectionVariables.set(\"createdAdminUsername\", jsonData.username);",
+                                    "    console.log(\"Created Admin User ID: \" + jsonData.id + \", Username: \" + jsonData.username);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Test User By Admin {{$randomInt}}\",\n  \"email\": \"testbyadmin{{$randomInt}}@example.com\",\n  \"username\": \"testadmin{{$randomInt}}\",\n  \"password\": \"UserPass123!\",\n  \"roles\": [\n    {\"roleName\": \"ROLE_USER\"},\n    {\"roleName\": \"ROLE_ADMIN\"}\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User by ID (Admin or Owner)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{createdAdminUserId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{createdAdminUserId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                 {
+                    "name": "Get User by Username (Admin or Owner)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/search/by-username?username={{createdAdminUsername}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "search",
+                                "by-username"
+                            ],
+                            "query": [
+                                {
+                                    "key": "username",
+                                    "value": "{{createdAdminUsername}}"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update User (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Updated User Name {{$randomInt}}\",\n  \"email\": \"updated{{$randomInt}}@example.com\",\n  \"username\": \"updateduser{{$randomInt}}\",\n  \"password\": \"NewValidPass1!\",\n  \"roles\": [\n    {\"roleName\": \"ROLE_USER\"}\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{createdAdminUserId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{createdAdminUserId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Patch User (Admin or Owner)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Patched User Name {{$randomInt}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{createdAdminUserId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{createdAdminUserId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Add Favorite Movie (User)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/favorites/{{createdMovieId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "favorites",
+                                "{{createdMovieId}}"
+                            ]
+                        },
+                        "description": "Requires a movie to be created first."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Favorite Movies (User)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/favorites",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "favorites"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Remove Favorite Movie (User)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/favorites/{{createdMovieId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "favorites",
+                                "{{createdMovieId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Mark Movie as Watched (User)",
+                    "request": {
+                         "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/watched/{{createdMovieId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "watched",
+                                "{{createdMovieId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Watched Movies (User)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/watched",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "watched"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Unmark Movie as Watched (User)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/watched/{{createdMovieId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "watched",
+                                "{{createdMovieId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                 {
+                    "name": "Get Personalized Recommendations (User)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/recommendations",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "recommendations"
+                            ]
+                        },
+                        "description": "Needs user to have watched/favorited movies with genres."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete User (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{createdAdminUserId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{createdAdminUserId}}"
+                            ]
+                        },
+                        "description": "Deletes the user created by admin earlier in the tests."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Endpoints for managing users."
+        },
+        {
+            "name": "Genres",
+            "item": [
+                {
+                    "name": "Create Genre (Admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 201\", function () { pm.response.to.have.status(201); });",
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.id) {",
+                                    "    pm.collectionVariables.set(\"createdGenreId\", jsonData.id);",
+                                    "    pm.collectionVariables.set(\"createdGenreName\", jsonData.name);",
+                                    "    console.log(\"Created Genre ID: \" + jsonData.id + \", Name: \" + jsonData.name);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Action{{$randomInt}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/genres",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "genres"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Genres",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/genres",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "genres"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Genre by ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/genres/{{createdGenreId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "genres",
+                                "{{createdGenreId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Genre (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Sci-Fi{{$randomInt}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/genres/{{createdGenreId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "genres",
+                                "{{createdGenreId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Genre (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/genres/{{createdGenreId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "genres",
+                                "{{createdGenreId}}"
+                            ]
+                        },
+                        "description": "This might fail if the genre is associated with a movie."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Endpoints for managing movie genres."
+        },
+        {
+            "name": "Movies",
+            "item": [
+                {
+                    "name": "Create Movie (Admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 201\", function () { pm.response.to.have.status(201); });",
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.id) {",
+                                    "    pm.collectionVariables.set(\"createdMovieId\", jsonData.id);",
+                                    "    console.log(\"Created Movie ID: \" + jsonData.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"New Movie {{$randomInt}}\",\n  \"synopsis\": \"A great new movie.\",\n  \"releaseYear\": 2024,\n  \"duration\": 120,\n  \"contentRating\": \"A12\",\n  \"genres\": [\n    {\"name\": \"{{createdGenreName}}\"} \n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/movies",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "movies"
+                            ]
+                        },
+                        "description": "Ensure a genre (e.g., {{createdGenreName}}) exists before running."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Movies",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/movies?sort=title,desc",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "movies"
+                            ],
+                            "query": [
+                                {
+                                    "key": "sort",
+                                    "value": "title,desc"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Movie by ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/movies/{{createdMovieId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "movies",
+                                "{{createdMovieId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Movies by Title",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/movies/search/by-title?title=New Movie",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "movies",
+                                "search",
+                                "by-title"
+                            ],
+                            "query": [
+                                {
+                                    "key": "title",
+                                    "value": "New Movie"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Movies by Genre Name",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/movies/search/by-genre?genreName={{createdGenreName}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "movies",
+                                "search",
+                                "by-genre"
+                            ],
+                            "query": [
+                                {
+                                    "key": "genreName",
+                                    "value": "{{createdGenreName}}"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Movies by Release Year",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/movies/search/by-year?year=2024",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "movies",
+                                "search",
+                                "by-year"
+                            ],
+                            "query": [
+                                {
+                                    "key": "year",
+                                    "value": "2024"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Movie (Admin)",
+                    "request": {
+                         "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Updated Movie Title {{$randomInt}}\",\n  \"synopsis\": \"Updated synopsis.\",\n  \"releaseYear\": 2025,\n  \"duration\": 125,\n  \"contentRating\": \"A14\",\n  \"genres\": [\n    {\"name\": \"{{createdGenreName}}\"} \n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/movies/{{createdMovieId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "movies",
+                                "{{createdMovieId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Patch Movie (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"synopsis\": \"Partially updated synopsis {{$randomInt}}.\",\n  \"contentRating\": \"A16\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/movies/{{createdMovieId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "movies",
+                                "{{createdMovieId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Highlighted Movies",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/movies/highlighted?page=0&size=5",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "movies",
+                                "highlighted"
+                            ],
+                            "query": [
+                                {"key": "page", "value": "0"},
+                                {"key": "size", "value": "5"}
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Movie (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/movies/{{createdMovieId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "movies",
+                                "{{createdMovieId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Endpoints for managing movies."
+        },
+        {
+            "name": "Reviews",
+            "item": [
+                {
+                    "name": "Create Review (User)",
+                    "event": [
+                         {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "// This pre-request script ensures that the user has marked the movie as watched.",
+                                    "// This is a conceptual step; in a real test suite, you'd ensure this action was performed.",
+                                    "console.log(\"Pre-request: Ensure user {{newlyRegisteredUserId}} has watched movie {{createdMovieId}}.\");",
+                                    "// pm.sendRequest({...",
+                                    "//     url: pm.collectionVariables.get(\"baseUrl\") + \"/api/users/\" + pm.collectionVariables.get(\"newlyRegisteredUserId\") + \"/watched/\" + pm.collectionVariables.get(\"createdMovieId\"),",
+                                    "//     method: 'POST',",
+                                    "//     header: { 'Authorization': 'Bearer ' + pm.collectionVariables.get(\"user_jwt_token\") }",
+                                    "// }, function (err, response) {",
+                                    "//      if (err || response.code !== 200) { console.error('Failed to mark movie as watched', err || response); }",
+                                    "//      else { console.log('Movie marked as watched successfully'); }",
+                                    "// });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 201\", function () { pm.response.to.have.status(201); });",
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.id) {",
+                                    "    pm.collectionVariables.set(\"createdReviewId\", jsonData.id);",
+                                    "    console.log(\"Created Review ID: \" + jsonData.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"content\": \"This is a fantastic movie! Highly recommended. {{$randomInt}}\",\n  \"directionScore\": 5,\n  \"screenplayScore\": 4,\n  \"cinematographyScore\": 5,\n  \"generalScore\": 5\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/movies/{{createdMovieId}}/reviews",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "movies",
+                                "{{createdMovieId}}",
+                                "reviews"
+                            ]
+                        },
+                        "description": "Requires the user ({{newlyRegisteredUserId}}) to have 'watched' the movie ({{createdMovieId}}). You might need to run 'Mark Movie as Watched' first."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Review by ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/reviews/{{createdReviewId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reviews",
+                                "{{createdReviewId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Reviews by Movie",
+                    "request": {
+                         "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/movies/{{createdMovieId}}/reviews",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "movies",
+                                "{{createdMovieId}}",
+                                "reviews"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Reviews by User",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/reviews",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "reviews"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Review (Owner)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"content\": \"Actually, after a rewatch, it's even better! {{$randomInt}}\",\n  \"directionScore\": 5,\n  \"screenplayScore\": 5,\n  \"cinematographyScore\": 5,\n  \"generalScore\": 5\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/reviews/{{createdReviewId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reviews",
+                                "{{createdReviewId}}"
+                            ]
+                        },
+                        "description": "The @PreAuthorize uses @securityService.isReviewOwner. This implies the service checks if the authenticated user (from token) owns the review."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Like Review",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/reviews/{{createdReviewId}}/like",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reviews",
+                                "{{createdReviewId}}",
+                                "like"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Flag Review (as Admin, different user)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"flagReason\": \"Contains spoilers without warning. {{$randomInt}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/reviews/{{createdReviewId}}/flag",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reviews",
+                                "{{createdReviewId}}",
+                                "flag"
+                            ]
+                        },
+                        "description": "Admin user flags the review created by newlyRegisteredUser."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Export Reviews as PDF (Admin)",
+                    "request": {
+                         "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/export/pdf",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "export",
+                                "pdf"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User Review Statistics (Admin)",
+                     "request": {
+                         "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/reviews/{{newlyRegisteredUserId}}/userStatistics",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reviews",
+                                "{{newlyRegisteredUserId}}",
+                                "userStatistics"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User Average Weighted Review Scores (Admin)",
+                     "request": {
+                         "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/reviews/{{newlyRegisteredUserId}}/average-weighted",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reviews",
+                                "{{newlyRegisteredUserId}}",
+                                "average-weighted"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Review (Owner)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/reviews/{{createdReviewId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reviews",
+                                "{{createdReviewId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Endpoints for managing movie reviews."
+        },
+        {
+            "name": "Watchlists",
+            "item": [
+                {
+                    "name": "Create Watchlist (User)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 201\", function () { pm.response.to.have.status(201); });",
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.id) {",
+                                    "    pm.collectionVariables.set(\"createdWatchlistId\", jsonData.id);",
+                                    "    console.log(\"Created Watchlist ID: \" + jsonData.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"My Awesome Watchlist {{$randomInt}}\",\n  \"description\": \"A collection of movies I want to watch.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/watchlists",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "watchlists"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Watchlists by User",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/watchlists",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "watchlists"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Watchlist by ID for User",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/watchlists/{{createdWatchlistId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "watchlists",
+                                "{{createdWatchlistId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Watchlist (User)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"My Updated Watchlist Name {{$randomInt}}\",\n  \"description\": \"Updated description for my watchlist.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/watchlists/{{createdWatchlistId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "watchlists",
+                                "{{createdWatchlistId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Add Movie to Watchlist (User)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/watchlists/{{createdWatchlistId}}/movies/{{createdMovieId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "watchlists",
+                                "{{createdWatchlistId}}",
+                                "movies",
+                                "{{createdMovieId}}"
+                            ]
+                        },
+                        "description": "Requires a movie ({{createdMovieId}}) to be created."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Remove Movie from Watchlist (User)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/watchlists/{{createdWatchlistId}}/movies/{{createdMovieId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "watchlists",
+                                "{{createdWatchlistId}}",
+                                "movies",
+                                "{{createdMovieId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Watchlist (User)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{user_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/{{newlyRegisteredUserId}}/watchlists/{{createdWatchlistId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{newlyRegisteredUserId}}",
+                                "watchlists",
+                                "{{createdWatchlistId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Endpoints for managing user watchlists."
+        },
+        {
+            "name": "Moderation (Admin)",
+            "item": [
+                {
+                    "name": "Get Heavily Flagged Reviews",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/reviews/flagged?minFlags=1&size=5",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "reviews",
+                                "flagged"
+                            ],
+                            "query": [
+                                {
+                                    "key": "minFlags",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "size",
+                                    "value": "5"
+                                }
+                            ]
+                        },
+                        "description": "Requires reviews to be flagged. The `createdReviewId` from the Reviews folder could be used if it was flagged."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Hide Review",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/reviews/{{createdReviewId}}/hide",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "reviews",
+                                "{{createdReviewId}}",
+                                "hide"
+                            ]
+                        },
+                        "description": "Uses the review created and potentially flagged earlier."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Unhide Review",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/reviews/{{createdReviewId}}/unhide",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "reviews",
+                                "{{createdReviewId}}",
+                                "unhide"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Admin-only endpoints for content moderation."
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8080",
+            "type": "string"
+        },
+        {
+            "key": "admin_jwt_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "user_jwt_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "newlyRegisteredUserId",
+            "value": "",
+            "type": "string"
+        },
+         {
+            "key": "newlyRegisteredUsername",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "createdAdminUserId",
+            "value": "",
+            "type": "string"
+        },
+         {
+            "key": "createdAdminUsername",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "createdMovieId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "createdGenreId",
+            "value": "",
+            "type": "string"
+        },
+         {
+            "key": "createdGenreName",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "createdReviewId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "createdWatchlistId",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

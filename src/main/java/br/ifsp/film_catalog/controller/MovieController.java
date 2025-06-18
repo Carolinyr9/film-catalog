@@ -13,12 +13,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @Tag(name = "Filmes", description = "API para gerenciamento de filmes no catálogo")
 @Validated
@@ -54,7 +57,7 @@ public class MovieController {
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/{id}")
-    public ResponseEntity<MovieResponseDTO> getMovieById(@PathVariable Long id) {
+    public ResponseEntity<MovieResponseDTO> getMovieById(@PathVariable @Valid Long id) {
         MovieResponseDTO movie = movieService.getMovieById(id);
         return ResponseEntity.ok(movie);
     }
@@ -85,7 +88,7 @@ public class MovieController {
     })
     @GetMapping("/search/by-genre")
     public ResponseEntity<PagedResponse<MovieResponseDTO>> getMoviesByGenre(
-        @RequestParam String genreName,
+        @RequestParam @NotBlank(message = "Genre name must not be blank") String genreName,
         @PageableDefault(size = 10, sort = "title") Pageable pageable
     ) {
         PagedResponse<MovieResponseDTO> movies = movieService.getMoviesByGenre(genreName, pageable);
@@ -115,7 +118,7 @@ public class MovieController {
             @ApiResponse(responseCode = "403", description = "Acesso negado (Requer perfil de ADMIN)", 
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<MovieResponseDTO> createMovie(@Valid @RequestBody MovieRequestDTO movieRequestDTO) {
         MovieResponseDTO createdMovie = movieService.createMovie(movieRequestDTO);
@@ -171,13 +174,13 @@ public class MovieController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Buscar filmes por ano de lançamento", description = "Retorna uma lista paginada de filmes lançados no ano especificado.")
+    @Operation(summary = "Buscar filmes em destaque", description = "Retorna uma lista paginada de filmes em destaque.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista de filmes recuperada com sucesso"),
             @ApiResponse(responseCode = "403", description = "Acesso negado (se a segurança estiver habilitada)", 
                          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @GetMapping("/movies/highlighted")
+    @GetMapping("/highlighted")
     public PagedResponse<MovieResponseDTO> getHighlightedMovies(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
