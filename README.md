@@ -117,17 +117,68 @@ As rotas são protegidas por filtros e regras declaradas na configuração de se
 
 ## 🧪 Testes implementados
 
-### ✅ Testes Unitários
+Neste projeto, foram desenvolvidos testes automatizados para garantir o correto funcionamento das principais funcionalidades da API, divididos entre testes unitários e funcionais (integração).
 
-* Serviços como `UserService`, `FilmService` e `JwtService`
-* Validação de lógica de negócio independente do contexto web
+### Testes Unitários
 
-### ✅ Testes Funcionais (integração)
+* Cobrem a lógica de negócio isolada, sem dependência do contexto web.
+* Testam serviços como:
 
-* Requisições REST simuladas com autenticação
-* Testes para endpoints protegidos e públicos
-* Verificação de comportamento esperado com Spring Boot Test
+  * `UserService`
+  * `FilmService`
+  * `JwtService`
+* Utilizam `JUnit` e `Mockito` para simular comportamentos e dependências.
 
-Os testes estão localizados em `src/test/java`.
+### Testes Funcionais (Integração)
+
+* Simulam requisições REST reais com autenticação.
+* Validam o comportamento dos endpoints públicos e protegidos.
+* Utilizam `Spring Boot Test` com `MockMvc` para garantir o fluxo completo de requisição-resposta.
+* Cobrem cenários de sucesso, falha (400, 403, 404), paginação e validação de dados.
+
+📁 Todos os testes estão localizados no diretório:
+
+```
+\src\test\java\br\ifsp\film_catalog
+```
+
+---
+
+### ▶️ Como executar os testes
+
+Você pode executar os testes de diferentes formas, conforme o ambiente de desenvolvimento utilizado:
+
+#### No **VS Code**
+
+1. Abra o projeto no VS Code com a extensão **Java Extension Pack** instalada.
+2. Vá até a aba **"Testing"** (ícone de becher no lado esquerdo).
+3. Clique em **"Run Test"** ao lado do nome da classe ou método.
+4. Alternativamente, abra o arquivo de teste, passe o mouse sobre o método e clique no botão de execução ▶️.
+
+#### No **IntelliJ IDEA**
+
+1. Clique com o botão direito sobre a classe ou método de teste e selecione **Run 'NomeDoTeste'**.
+2. Para rodar todos os testes:
+
+   * Clique com o botão direito no diretório `src/test/java` e selecione **Run Tests in 'java'**.
+   * Ou use o atalho: **Ctrl + Shift + F10** (Windows/Linux) ou **⌃⇧R** (macOS).
+
+#### No **Terminal**
+
+1. Certifique-se de que o projeto foi compilado corretamente.
+2. Use o seguinte comando Maven:
+
+```bash
+./mvnw test
+```
+
+Ou, se estiver usando Maven globalmente instalado:
+
+```bash
+mvn test
+```
+
+Esse comando executa **todos os testes** (unitários e funcionais).
+
 
 📬 Em caso de dúvidas ou sugestões, fique à vontade para abrir uma *issue* ou enviar um *pull request*!
